@@ -24,7 +24,14 @@ pipeline {
                }
            }
            steps {
-               checkout scm
+               // Полный checkout с явным указанием параметров, чтобы получить .git каталог
+               checkout([
+                   $class: 'GitSCM',
+                   branches: [[name: '*/master']],
+                   doGenerateSubmoduleConfigurations: false,
+                   extensions: [[$class: 'CloneOption', shallow: false, noTags: false]],
+                   userRemoteConfigs: [[url: 'https://github.com/Administracja-Team/ProjectManagerBackend.git']]
+               ])
                sh 'mvn clean package -DskipTests'
            }
        }
