@@ -15,18 +15,20 @@ pipeline {
                 git branch: 'master', url: 'https://github.com/Administracja-Team/ProjectManagerBackend.git'
             }
         }
-        stage('Build Maven') {
-            agent {
-                docker {
-                    image 'maven:3.8.6-openjdk-11'
-                    args '-v $HOME/.m2:/root/.m2'
-                    reuseNode true  // гарантирует, что рабочий каталог будет использован внутри контейнера
-                }
-            }
-            steps {
-                sh 'mvn clean package -DskipTests'
-            }
-        }
+       stage('Build Maven') {
+           agent {
+               docker {
+                   image 'maven:3.8.6-openjdk-11'
+                   args '-v $HOME/.m2:/root/.m2'
+                   reuseNode true
+               }
+           }
+           steps {
+               checkout scm
+               sh 'mvn clean package -DskipTests'
+           }
+       }
+
         stage('Build Docker Image') {
             steps {
                 script {
