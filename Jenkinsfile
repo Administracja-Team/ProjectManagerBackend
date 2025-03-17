@@ -1,5 +1,9 @@
 pipeline {
     agent any
+    options {
+        // Отключаем автоматический checkout
+        skipDefaultCheckout(true)
+    }
 
     environment {
         APP_NAME = "project-manager-backend"
@@ -12,8 +16,15 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
-                // Сохраняем все файлы в workspace для последующего использования
+                // Выполняем checkout вручную, указывая URL и при необходимости credentials
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: '*/master']],
+                    userRemoteConfigs: [[
+                        url: 'https://github.com/Administracja-Team/ProjectManagerBackend.git',
+                        credentialsId: 'docker-credentials-gnevilkoko'
+                    ]]
+                ])
                 stash name: 'source', includes: '**'
             }
         }
@@ -26,27 +37,22 @@ pipeline {
                 }
             }
             steps {
-                // Извлекаем сохранённый workspace, чтобы внутри контейнера были все файлы, включая .git
                 unstash 'source'
                 sh 'mvn clean package -DskipTests'
             }
         }
         stage('Build Docker Image') {
             steps {
-                script {
-                    sh "docker build -t ${DOCKER_IMAGE} ."
-                }
+                sh "docker build -t ${DOCKER_IMAGE} ."
             }
         }
         stage('Deploy') {
             steps {
-                script {
-                    sh """
-                    docker stop ${APP_NAME} || true
-                    docker rm ${APP_NAME} || true
-                    """
-                    sh "docker run -d --name ${APP_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} --env-file ${DEPLOY_PATH}/.env ${DOCKER_IMAGE}"
-                }
+                sh """
+                  docker stop ${APP_NAME} || true
+                  docker rm ${APP_NAME} || true
+                """
+                sh "docker run -d --name ${APP_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} --env-file ${DEPLOY_PATH}/.env ${DOCKER_IMAGE}"
             }
         }
     }
