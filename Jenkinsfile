@@ -20,6 +20,7 @@ pipeline {
                 docker {
                     image 'maven:3.8.6-openjdk-11'
                     args '-v $HOME/.m2:/root/.m2'
+                    reuseNode true  // гарантирует, что рабочий каталог будет использован внутри контейнера
                 }
             }
             steps {
