@@ -16,9 +16,16 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 public class AuthorizationFilter extends OncePerRequestFilter {
+    private List<String> publicRoutes = new ArrayList<>() {
+        {add("/authorization");}
+        {add("/swagger");}
+        {add("/v3");}
+    };
 
     private UserDetailsService userDetailsService;
 
@@ -30,7 +37,7 @@ public class AuthorizationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
         String uri = request.getRequestURI();
-        if(uri.startsWith("/swagger") || uri.startsWith("/v3")){
+        if(isPublicRoute(uri)){
             chain.doFilter(request, response);
             return;
         }
@@ -57,5 +64,15 @@ public class AuthorizationFilter extends OncePerRequestFilter {
            response.setContentType("application/json");
            response.getWriter().write(e.toJson());
        }
+    }
+
+    public boolean isPublicRoute(String route) {
+        for (String publicRoute : publicRoutes) {
+            if(route.startsWith(publicRoute)){
+                return true;
+            }
+        }
+
+        return false;
     }
 }

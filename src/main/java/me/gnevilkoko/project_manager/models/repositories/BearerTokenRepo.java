@@ -11,4 +11,5 @@ import java.util.UUID;
 public interface BearerTokenRepo extends JpaRepository<BearerToken, UUID> {
 
     Optional<BearerToken> findByToken(String token);
+    Optional<BearerToken> findByRefreshToken(String refreshToken);
 }
