@@ -12,30 +12,25 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'master', url: 'https://github.com/Administracja-Team/ProjectManagerBackend.git'
+                checkout scm
+                // Сохраняем все файлы в workspace для последующего использования
+                stash name: 'source', includes: '**'
             }
         }
-       stage('Build Maven') {
-           agent {
-               docker {
-                   image 'maven:3.8.6-openjdk-11'
-                   args '-v $HOME/.m2:/root/.m2'
-                   reuseNode true
-               }
-           }
-           steps {
-               // Полный checkout с явным указанием параметров, чтобы получить .git каталог
-               checkout([
-                   $class: 'GitSCM',
-                   branches: [[name: '*/master']],
-                   doGenerateSubmoduleConfigurations: false,
-                   extensions: [[$class: 'CloneOption', shallow: false, noTags: false]],
-                   userRemoteConfigs: [[url: 'https://github.com/Administracja-Team/ProjectManagerBackend.git']]
-               ])
-               sh 'mvn clean package -DskipTests'
-           }
-       }
-
+        stage('Build Maven') {
+            agent {
+                docker {
+                    image 'maven:3.8.6-openjdk-11'
+                    args '-v $HOME/.m2:/root/.m2'
+                    reuseNode true
+                }
+            }
+            steps {
+                // Извлекаем сохранённый workspace, чтобы внутри контейнера были все файлы, включая .git
+                unstash 'source'
+                sh 'mvn clean package -DskipTests'
+            }
+        }
         stage('Build Docker Image') {
             steps {
                 script {
