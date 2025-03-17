@@ -16,6 +16,12 @@ pipeline {
             }
         }
         stage('Build Maven') {
+            agent {
+                docker {
+                    image 'maven:3.8.6-openjdk-11'
+                    args '-v $HOME/.m2:/root/.m2' // если нужно кэшировать зависимости
+                }
+            }
             steps {
                 sh 'mvn clean package -DskipTests'
             }
