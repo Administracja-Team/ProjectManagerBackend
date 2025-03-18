@@ -17,8 +17,14 @@ pipeline {
         }
         stage('Build Maven') {
             steps {
-                // Запускаем сборку Maven (Maven уже установлен в образе Jenkins)
-                sh 'mvn clean package -DskipTests'
+                sh '''
+                  docker run --rm \
+                    -v "${WORKSPACE}":/app:ro \
+                    -v "$HOME/.m2":/root/.m2 \
+                    -w /app \
+                    gnevilkoko:openjdk21-maven \
+                    mvn clean package -DskipTests
+                '''
             }
         }
         stage('Build Docker Image') {
