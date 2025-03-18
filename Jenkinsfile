@@ -6,6 +6,7 @@ pipeline {
         DOCKER_IMAGE = "project-manager-backend:latest"
         HOST_PORT = "8888"
         CONTAINER_PORT = "8080"
+        ENV_FILE_PATH = "/home/gnevilkoko/.env"
     }
 
     stages {
@@ -35,7 +36,7 @@ pipeline {
             steps {
                 sh "docker stop ${APP_NAME} || true"
                 sh "docker rm ${APP_NAME} || true"
-                sh "docker run -d --name ${APP_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} ${DOCKER_IMAGE}"
+                sh "docker run -d --name ${APP_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} --env-file ${ENV_FILE_PATH} ${DOCKER_IMAGE}"
             }
         }
     }
