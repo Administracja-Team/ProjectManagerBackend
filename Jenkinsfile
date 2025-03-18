@@ -24,7 +24,7 @@ pipeline {
                     -v "${WORKSPACE}":/app \
                     -v "$HOME/.m2":/root/.m2 \
                     -w /app \
-                    maven:3.9.9-amazoncorretto-21-al2023 \
+                    gnevilkoko:openjdk21-maven \
                     mvn clean package -DskipTests
                 '''
             }
