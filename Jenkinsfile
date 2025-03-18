@@ -17,8 +17,16 @@ pipeline {
         }
         stage('Build Maven') {
             steps {
-                // Собираем проект с Maven (предполагается, что pom.xml в корне)
-                sh 'mvn clean package -DskipTests'
+                unstash 'source'
+                // Используем свой Maven образ с Java 21
+                sh '''
+                  docker run --rm \
+                    -v "${WORKSPACE}":/app \
+                    -v "$HOME/.m2":/root/.m2 \
+                    -w /app \
+                    maven:3.9.9-amazoncorretto-21-al2023 \
+                    mvn clean package -DskipTests
+                '''
             }
         }
         stage('Build Docker Image') {
