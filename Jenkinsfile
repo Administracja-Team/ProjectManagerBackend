@@ -11,31 +11,25 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                // Извлекаем код из репозитория
+                // Чекаут кода из репозитория (используем встроенную переменную scm)
                 checkout scm
             }
         }
         stage('Build Maven') {
             steps {
-                sh '''
-                  docker run --rm \
-                    -v "${WORKSPACE}":/app:ro \
-                    -v "$HOME/.m2":/root/.m2 \
-                    -w /app \
-                    gnevilkoko:openjdk21-maven \
-                    mvn clean package -DskipTests
-                '''
+                // Запускаем сборку Maven – теперь Maven установлен в образе Jenkins
+                sh 'mvn clean package -DskipTests'
             }
         }
         stage('Build Docker Image') {
             steps {
-                // Собираем Docker-образ по Dockerfile (он должен находиться в корне репозитория)
+                // Собираем Docker-образ по Dockerfile (он должен быть в корне репозитория)
                 sh "docker build -t ${DOCKER_IMAGE} ."
             }
         }
         stage('Deploy') {
             steps {
-                // Если контейнер с приложением уже запущен, останавливаем и удаляем его
+                // Если контейнер уже запущен, останавливаем и удаляем его
                 sh "docker stop ${APP_NAME} || true"
                 sh "docker rm ${APP_NAME} || true"
                 // Запускаем новый контейнер с приложением
