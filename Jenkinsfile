@@ -29,16 +29,17 @@ pipeline {
             }
         }
         stage('Build Maven') {
-            agent {
-                docker {
-                    image 'maven:3.8.6-openjdk-11'
-                    args '-v $HOME/.m2:/root/.m2'
-                    reuseNode true
-                }
-            }
             steps {
                 unstash 'source'
-                sh 'mvn clean package -DskipTests'
+                // Запускаем maven:3.8.6-openjdk-11 через docker run с монтированием текущей директории и папки с артефактами maven
+                sh '''
+                  docker run --rm \
+                    -v "$PWD":/app \
+                    -v "$HOME/.m2":/root/.m2 \
+                    -w /app \
+                    maven:3.8.6-openjdk-11 \
+                    mvn clean package -DskipTests
+                '''
             }
         }
         stage('Build Docker Image') {
