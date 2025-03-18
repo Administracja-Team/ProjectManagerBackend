@@ -38,7 +38,7 @@ pipeline {
                   docker run --rm \
                     -v "$PWD":/app \
                     -v "$HOME/.m2":/root/.m2 \
-                    -w /app \  # Если pom.xml в корне, иначе измените на -w /app/backend
+                    -w /app \
                     maven:3.8.6-openjdk-11 \
                     mvn clean package -DskipTests
                 '''
