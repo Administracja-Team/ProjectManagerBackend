@@ -17,29 +17,22 @@ pipeline {
         }
         stage('Build Maven') {
             steps {
-                // Выводим содержимое workspace в Jenkins для проверки
-                sh 'ls -la ${WORKSPACE}'
-                // Запускаем контейнер и выводим содержимое каталога /app внутри него
-                sh '''
-                  docker run --rm \
-                    -v "${WORKSPACE}":/app:ro \
-                    -v "$HOME/.m2":/root/.m2 \
-                    -w /app \
-                    gnevilkoko:openjdk21-maven \
-                    sh -c "echo 'Содержимое /app внутри контейнера:' && ls -la && mvn clean package -DskipTests"
-                '''
+                // Запускаем сборку Maven (Maven уже установлен в образе Jenkins)
+                sh 'mvn clean package -DskipTests'
             }
         }
-
         stage('Build Docker Image') {
             steps {
+                // Собираем Docker-образ по Dockerfile (он должен находиться в корне репозитория)
                 sh "docker build -t ${DOCKER_IMAGE} ."
             }
         }
         stage('Deploy') {
             steps {
+                // Если контейнер с приложением уже запущен, останавливаем и удаляем его
                 sh "docker stop ${APP_NAME} || true"
                 sh "docker rm ${APP_NAME} || true"
+                // Запускаем новый контейнер с приложением
                 sh "docker run -d --name ${APP_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} ${DOCKER_IMAGE}"
             }
         }
