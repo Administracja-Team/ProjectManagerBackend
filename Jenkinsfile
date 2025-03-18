@@ -36,7 +36,7 @@ pipeline {
                 // Если pom.xml находится в подпапке, например, backend, то укажите ее в рабочей директории:
                 sh '''
                   docker run --rm \
-                    -v "$PWD":/app \
+                    -v "${WORKSPACE}":/app \
                     -v "$HOME/.m2":/root/.m2 \
                     -w /app \
                     maven:3.8.6-openjdk-11 \
