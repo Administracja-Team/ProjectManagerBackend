@@ -31,17 +31,20 @@ pipeline {
         stage('Build Maven') {
             steps {
                 unstash 'source'
-                // Запускаем maven:3.8.6-openjdk-11 через docker run с монтированием текущей директории и папки с артефактами maven
+                // Выведем список файлов для проверки, где находится pom.xml
+                sh 'ls -la'
+                // Если pom.xml находится в подпапке, например, backend, то укажите ее в рабочей директории:
                 sh '''
                   docker run --rm \
                     -v "$PWD":/app \
                     -v "$HOME/.m2":/root/.m2 \
-                    -w /app \
+                    -w /app \  # Если pom.xml в корне, иначе измените на -w /app/backend
                     maven:3.8.6-openjdk-11 \
                     mvn clean package -DskipTests
                 '''
             }
         }
+
         stage('Build Docker Image') {
             steps {
                 sh "docker build -t ${DOCKER_IMAGE} ."
