@@ -14,10 +14,16 @@ pipeline {
                 checkout scm
             }
         }
-        stage('Build Maven') {
+        stage('Build Maven (JDK 21)') {
             steps {
-                // Выполняем сборку Maven напрямую в контейнере Jenkins
-                sh 'mvn clean package -DskipTests'
+                // Для сборки проекта с JDK 21 задаем JAVA_HOME и обновляем PATH
+                sh '''
+                  export JAVA_HOME=/opt/openjdk21
+                  export PATH=$JAVA_HOME/bin:$PATH
+                  echo "Using Java version:"
+                  java -version
+                  mvn clean package -DskipTests
+                '''
             }
         }
         stage('Build Docker Image') {
