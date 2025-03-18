@@ -17,18 +17,20 @@ pipeline {
         }
         stage('Build Maven') {
             steps {
-                // Запускаем Maven внутри контейнера с Java 21.
-                // Используется переменная WORKSPACE, которая содержит путь к текущей сборке.
+                // Выводим содержимое workspace в Jenkins для проверки
+                sh 'ls -la ${WORKSPACE}'
+                // Запускаем контейнер и выводим содержимое каталога /app внутри него
                 sh '''
                   docker run --rm \
-                    -v "${WORKSPACE}":/app \
+                    -v "${WORKSPACE}":/app:ro \
                     -v "$HOME/.m2":/root/.m2 \
                     -w /app \
                     gnevilkoko:openjdk21-maven \
-                    mvn clean package -DskipTests
+                    sh -c "echo 'Содержимое /app внутри контейнера:' && ls -la && mvn clean package -DskipTests"
                 '''
             }
         }
+
         stage('Build Docker Image') {
             steps {
                 sh "docker build -t ${DOCKER_IMAGE} ."
