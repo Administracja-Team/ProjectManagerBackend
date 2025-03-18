@@ -6,7 +6,7 @@ pipeline {
         DOCKER_IMAGE = "project-manager-backend:latest"
         HOST_PORT = "8888"
         CONTAINER_PORT = "8080"
-        ENV_FILE_PATH = "/home/gnevilkoko/.env"
+        ENV_FILE_PATH = "/backend/.env"
     }
 
     stages {
