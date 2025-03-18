@@ -17,8 +17,8 @@ pipeline {
         }
         stage('Build Maven') {
             steps {
-                unstash 'source'
-                // Используем свой Maven образ с Java 21
+                // Запускаем Maven внутри контейнера с Java 21.
+                // Используется переменная WORKSPACE, которая содержит путь к текущей сборке.
                 sh '''
                   docker run --rm \
                     -v "${WORKSPACE}":/app \
@@ -31,16 +31,13 @@ pipeline {
         }
         stage('Build Docker Image') {
             steps {
-                // Собираем Docker-образ, Dockerfile должен быть в корне репозитория
                 sh "docker build -t ${DOCKER_IMAGE} ."
             }
         }
         stage('Deploy') {
             steps {
-                // Если контейнер уже запущен, останавливаем и удаляем его
                 sh "docker stop ${APP_NAME} || true"
                 sh "docker rm ${APP_NAME} || true"
-                // Запускаем новый контейнер
                 sh "docker run -d --name ${APP_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} ${DOCKER_IMAGE}"
             }
         }
