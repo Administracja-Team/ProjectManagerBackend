@@ -39,7 +39,7 @@ pipeline {
                     -v "$PWD":/app \
                     -v "$HOME/.m2":/root/.m2 \
                     -w /app \
-                    maven:3.8.6-openjdk-22 \
+                    maven:3.8.6-openjdk-11 \
                     mvn clean package -DskipTests
                 '''
             }
