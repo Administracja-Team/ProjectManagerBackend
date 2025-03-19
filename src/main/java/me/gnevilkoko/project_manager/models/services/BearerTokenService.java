@@ -6,8 +6,11 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import me.gnevilkoko.project_manager.models.entities.BearerToken;
+import me.gnevilkoko.project_manager.models.entities.User;
 import me.gnevilkoko.project_manager.models.exceptions.TokenNotFoundException;
 import me.gnevilkoko.project_manager.models.repositories.BearerTokenRepo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -32,6 +35,7 @@ public class BearerTokenService {
     private final SecretKey key;
     private final long accessTokenValidity;
     private final long refreshTokenValidity;
+    private static final Logger logger = LoggerFactory.getLogger(BearerTokenService.class);
 
     @Autowired
     public BearerTokenService(
@@ -56,28 +60,41 @@ public class BearerTokenService {
         };
     }
 
-    public BearerToken generateToken() {
-        String accessToken = createToken(UUID.randomUUID().toString(), accessTokenValidity);
-        String refreshToken = createToken(UUID.randomUUID().toString(), refreshTokenValidity);
+    public BearerToken generateToken(User user) {
+        String combined = user.getUsername()+":"+user.getEmail();
+        String accessToken = createToken(combined, accessTokenValidity);
+        String refreshToken = createRefreshToken();
 
         BearerToken bearerToken = new BearerToken();
         bearerToken.setToken(accessToken);
         bearerToken.setRefreshToken(refreshToken);
+        bearerToken.setUser(user);
 
-        return repo.save(bearerToken);
+        BearerToken token = repo.save(bearerToken);
+        logger.debug("Generated BearerToken: {}", token);
+
+        return token;
     }
 
     public Optional<BearerToken> refreshToken(String refreshToken) {
         return repo.findByRefreshToken(refreshToken)
                 .map(existingToken -> {
-                    if (!isTokenValid(refreshToken)) {
-                        repo.delete(existingToken);
-                        return Optional.<BearerToken>empty();
-                    }
                     String newAccessToken = createToken(UUID.randomUUID().toString(), accessTokenValidity);
+                    String newRefreshToken = createRefreshToken();
                     existingToken.setToken(newAccessToken);
+                    existingToken.setRefreshToken(newRefreshToken);
                     return Optional.of(repo.save(existingToken));
                 }).orElse(Optional.empty());
+    }
+
+    public void logoutToken(String token) {
+        repo.findByToken(token).ifPresent(repo::delete);
+    }
+
+    public boolean validateTokenPair(String accessToken, String refreshToken) {
+        return repo.findByToken(accessToken)
+                .filter(token -> token.getRefreshToken().equals(refreshToken))
+                .isPresent();
     }
 
     public boolean isTokenValid(String token) {
@@ -118,5 +135,9 @@ public class BearerTokenService {
                 .expiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(key)
                 .compact();
+    }
+
+    public String createRefreshToken() {
+        return UUID.randomUUID().toString();
     }
 }

@@ -1,4 +1,4 @@
-package me.gnevilkoko.project_manager.models.dto.responses;
+package me.gnevilkoko.project_manager.models.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;

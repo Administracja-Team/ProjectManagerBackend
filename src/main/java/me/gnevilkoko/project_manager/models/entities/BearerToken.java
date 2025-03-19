@@ -1,5 +1,6 @@
 package me.gnevilkoko.project_manager.models.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -19,10 +20,17 @@ public class BearerToken implements UserDetails {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(unique = true)
     private String token;
 
+    @Column(unique = true)
     @JsonProperty("refresh_token")
     private String refreshToken;
+
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "user_id")
+    private User user;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

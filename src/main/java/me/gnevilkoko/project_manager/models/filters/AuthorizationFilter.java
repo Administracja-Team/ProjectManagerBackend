@@ -5,7 +5,9 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import me.gnevilkoko.project_manager.models.exceptions.BaseApiException;
+import me.gnevilkoko.project_manager.models.exceptions.TokenIsNotValid;
 import me.gnevilkoko.project_manager.models.exceptions.TokenNotFoundException;
+import me.gnevilkoko.project_manager.models.services.BearerTokenService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -28,10 +30,12 @@ public class AuthorizationFilter extends OncePerRequestFilter {
     };
 
     private UserDetailsService userDetailsService;
+    private BearerTokenService tokenService;
 
     @Autowired
-    public AuthorizationFilter(UserDetailsService userDetailsService) {
+    public AuthorizationFilter(UserDetailsService userDetailsService, BearerTokenService tokenService) {
         this.userDetailsService = userDetailsService;
+        this.tokenService = tokenService;
     }
 
     @Override
@@ -55,6 +59,9 @@ public class AuthorizationFilter extends OncePerRequestFilter {
            UsernamePasswordAuthenticationToken authenticationToken =
                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
            authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+           if(!tokenService.isTokenValid(userDetails.getUsername())){
+               throw new TokenIsNotValid();
+           }
 
            SecurityContextHolder.getContext().setAuthentication(authenticationToken);
 

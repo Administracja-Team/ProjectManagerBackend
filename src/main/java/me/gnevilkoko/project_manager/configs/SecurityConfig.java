@@ -46,7 +46,7 @@ public class SecurityConfig {
 
     @Bean
     public AuthorizationFilter authorizationFilter() {
-        return new AuthorizationFilter(tokenService.getUserDetailsService());
+        return new AuthorizationFilter(tokenService.getUserDetailsService(), tokenService);
     }
 
     @Bean
