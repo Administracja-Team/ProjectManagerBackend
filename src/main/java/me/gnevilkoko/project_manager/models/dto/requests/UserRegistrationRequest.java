@@ -15,10 +15,12 @@ import lombok.ToString;
 public class UserRegistrationRequest {
 
     @NotBlank(message = "Can't be blank")
+    @Schema(example = "john_doe")
     private String username;
 
     @NotBlank(message = "Can't be blank")
     @Email(message = "Is not a real email address")
+    @Schema(example = "john@example.com")
     private String email;
 
     @NotBlank(message = "Can't be blank")
@@ -27,20 +29,23 @@ public class UserRegistrationRequest {
             description = "Пароль должен содержать от 3 до 64 символов, допускаются только латинские буквы и цифры",
             minLength = 3,
             maxLength = 64,
-            example = "secret123"
+            example = "123456"
     )
     private String password;
 
     @NotBlank(message = "Cant' be blank")
     @Size(min = 2, max = 2, message = "Language code length must be 2 letters")
     @JsonProperty("language_code")
+    @Schema(example = "en")
     private String languageCode;
 
     @NotBlank(message = "Cant' be blank")
     @Size(min = 2, max = 48, message = "Is not a real name")
+    @Schema(example = "Joe")
     private String name;
 
     @NotBlank(message = "Cant' be blank")
     @Size(min = 2, max = 48, message = "Is not a real surname")
+    @Schema(example = "Doe")
     private String surname;
 }

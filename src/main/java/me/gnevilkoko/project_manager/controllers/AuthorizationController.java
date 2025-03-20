@@ -1,6 +1,7 @@
 package me.gnevilkoko.project_manager.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -18,16 +19,20 @@ import me.gnevilkoko.project_manager.models.entities.BearerToken;
 import me.gnevilkoko.project_manager.models.entities.User;
 import me.gnevilkoko.project_manager.models.exceptions.*;
 import me.gnevilkoko.project_manager.models.repositories.UserRepo;
+import me.gnevilkoko.project_manager.models.services.AvatarStorageService;
 import me.gnevilkoko.project_manager.models.services.BearerTokenService;
 import me.gnevilkoko.project_manager.models.services.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.AbstractMap;
@@ -36,12 +41,12 @@ import java.util.Optional;
 @RestController
 @RequestMapping(
         value = "/authorization",
-        produces = "application/json",
-        consumes = "application/json"
+        produces = MediaType.APPLICATION_JSON_VALUE
 )
 @SecurityRequirement(name = "")
 @Tag(name = "Authorization", description = "Methods for authorize users (login/registration)")
 public class AuthorizationController {
+    private AvatarStorageService avatarService;
     private BearerTokenService bearerTokenService;
     private UserService userService;
     private UserRepo userRepo;
@@ -51,67 +56,56 @@ public class AuthorizationController {
 
 
     @Autowired
-    public AuthorizationController(BearerTokenService bearerTokenService, UserService userService, UserRepo userRepo, PasswordEncoder passwordEncoder) {
+    public AuthorizationController(BearerTokenService bearerTokenService,
+                                   UserService userService, UserRepo userRepo,
+                                   PasswordEncoder passwordEncoder,
+                                   AvatarStorageService avatarService) {
         this.bearerTokenService = bearerTokenService;
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
         this.userRepo = userRepo;
+        this.avatarService = avatarService;
     }
 
 
-    @PostMapping("/register")
+    @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Registration of new user")
-    @ApiResponses(
-            value = {
-                    @ApiResponse(
-                            responseCode = "200",
-                            description = "User was successfully registered"
-                    ),
-                    @ApiResponse(
-                            responseCode = "400",
-                            description = "Validation errors occurred",
-                            content = @Content(
-                                    schema = @Schema(implementation = ValidationExceptionExample.class)
+    public ResponseEntity<BearerTokenDTO> registerUser(
+            @Parameter(
+                    name = "user",
+                    description = "Registration user data",
+                    required = true,
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = UserRegistrationRequest.class),
+                            examples = @ExampleObject(
+                                    value = "{\"username\":\"john_doe\",\"email\":\"john@example.com\",\"password\":\"123456\",\"name\":\"Joe\",\"surname\":\"Doe\",\"language_code\":\"en\"}"
                             )
-                    ),
-                    @ApiResponse(
-                            responseCode = "409",
-                            description = "Email or username already exist",
-                            content = @Content(
-                                    schema = @Schema(implementation = RegisteringUserDataAlreadyExistException.class),
-                                    examples = {
-                                            @ExampleObject(
-                                                    value = "{\"code\": 0, \"message\": \"User field \\\"joe@example.com\\\" already exist\"}"
-                                            ),
-                                            @ExampleObject(
-                                                    value = "{\"code\": 1, \"message\": \"User field \\\"joe_doe\\\" already exist\"}"
-                                            )
-                                    }
-                            )
-                    )
-            }
-    )
-    @RequestBody(
-            description = "Registration user data",
-            required = true,
-            content = @Content(
-                    mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = @Schema(implementation = UserRegistrationRequest.class),
-                    examples = @ExampleObject(
-                            value = "{\"username\": \"john_doe\", \"email\": \"john@example.com\", \"password\": \"123456\"," +
-                                    "\"name\": \"Joe\", \"surname\": \"Doe\", \"language_code\": \"en\"}"
                     )
             )
-    )
-    public ResponseEntity<BearerTokenDTO> registerUser(@Valid @org.springframework.web.bind.annotation.RequestBody UserRegistrationRequest request){
+            @Valid @RequestPart("user") UserRegistrationRequest request,
+            @Parameter(
+                    name = "avatar",
+                    description = "User avatar file",
+                    content = @Content(
+                            mediaType = MediaType.IMAGE_PNG_VALUE
+                    )
+            )
+            @RequestPart(value = "avatar", required = false) MultipartFile avatarFile
+    ) {
         logger.debug("Registration attempt with data: {}", request);
 
-        Optional<AbstractMap.SimpleEntry<Integer, String>> optionalSearchedUserData = userService.checkUserExists(request.getUsername(), request.getEmail());
-        if(optionalSearchedUserData.isPresent()){
+
+        Optional<AbstractMap.SimpleEntry<Integer, String>> optionalSearchedUserData =
+                userService.checkUserExists(request.getUsername(), request.getEmail());
+        if (optionalSearchedUserData.isPresent()){
             AbstractMap.SimpleEntry<Integer, String> searchedUserData = optionalSearchedUserData.get();
             logger.debug("Registration fail for {}, because email is exists", request.getUsername());
-            throw new RegisteringUserDataAlreadyExistException(new AbstractMap.SimpleEntry<>(searchedUserData.getKey(), searchedUserData.getValue()));
+
+            throw new RegisteringUserDataAlreadyExistException(
+                    new AbstractMap.SimpleEntry<>(searchedUserData.getKey(), searchedUserData.getValue()));
         }
+
 
         String passwordHash = passwordEncoder.encode(request.getPassword());
         User user = new User(
@@ -126,10 +120,30 @@ public class AuthorizationController {
         userRepo.save(user);
         logger.info("Successfully registered {}", user);
 
+
+        try {
+            boolean imageStatus;
+            if (avatarFile != null && !avatarFile.isEmpty()){
+                imageStatus = avatarService.uploadCustomAvatar(user, avatarFile);
+            } else {
+                imageStatus = avatarService.generateAvatar(user);
+            }
+
+            if (!imageStatus) {
+                logger.warn("Avatar upload failed for user: {}", user.getUsername());
+                throw new FailedToSaveImageException(HttpStatus.EXPECTATION_FAILED, "Wrong avatar file");
+            }
+        } catch (IOException e) {
+            throw new FailedToSaveImageException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to save image");
+        }
+
+
         BearerToken token = bearerTokenService.generateToken(user);
         BearerTokenDTO tokenDTO = new BearerTokenDTO(token, bearerTokenService);
         return ResponseEntity.ok(tokenDTO);
     }
+
+
 
     @PostMapping("/login")
     @Operation(summary = "Log in and get token by email or username as identifier")

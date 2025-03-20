@@ -17,7 +17,6 @@ pipeline {
         }
         stage('Build Maven (JDK 21)') {
             steps {
-                // Для сборки проекта с JDK 21 задаем JAVA_HOME и обновляем PATH
                 sh '''
                   export JAVA_HOME=/opt/openjdk21
                   export PATH=$JAVA_HOME/bin:$PATH
@@ -36,17 +35,17 @@ pipeline {
             steps {
                 sh "docker stop ${APP_NAME} || true"
                 sh "docker rm ${APP_NAME} || true"
-                sh "docker run -d --name ${APP_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} --env-file ${ENV_FILE_PATH} ${DOCKER_IMAGE}"
+                sh "docker run -d --name ${APP_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} -v /users:/users --env-file ${ENV_FILE_PATH} ${DOCKER_IMAGE}"
             }
         }
     }
 
     post {
         success {
-            echo 'Сборка и деплой прошли успешно!'
+            echo 'Successfully builded and deployed'
         }
         failure {
-            echo 'Сборка или деплой завершились с ошибкой.'
+            echo 'Failed to build and deploy'
         }
     }
 }
