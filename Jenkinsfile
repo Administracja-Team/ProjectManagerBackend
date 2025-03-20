@@ -7,7 +7,6 @@ pipeline {
         HOST_PORT = "8888"
         CONTAINER_PORT = "8080"
         ENV_FILE_PATH = "/backend/.env"
-        USER_DATA_FOLDER_PATH = "/backend/users"
     }
 
     stages {
