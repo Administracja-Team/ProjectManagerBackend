@@ -35,7 +35,7 @@ pipeline {
             steps {
                 sh "docker stop ${APP_NAME} || true"
                 sh "docker rm ${APP_NAME} || true"
-                sh "docker run -d --name ${APP_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} -v /home/gnevilkoko/backend-data/users:/app/users:/app/users --env-file ${ENV_FILE_PATH} ${DOCKER_IMAGE}"
+                sh "docker run -d --name ${APP_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} -v /home/gnevilkoko/backend-data/users:/app/users --env-file ${ENV_FILE_PATH} ${DOCKER_IMAGE}"
             }
         }
     }
