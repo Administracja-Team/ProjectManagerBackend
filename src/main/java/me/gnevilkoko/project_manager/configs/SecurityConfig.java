@@ -24,10 +24,12 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private BearerTokenService tokenService;
+    private BearerTokenRepo tokenRepo;
 
     @Autowired
-    public SecurityConfig(BearerTokenService tokenService) {
+    public SecurityConfig(BearerTokenService tokenService, BearerTokenRepo tokenRepo) {
         this.tokenService = tokenService;
+        this.tokenRepo = tokenRepo;
     }
 
     @Bean
@@ -46,7 +48,7 @@ public class SecurityConfig {
 
     @Bean
     public AuthorizationFilter authorizationFilter() {
-        return new AuthorizationFilter(tokenService.getUserDetailsService(), tokenService);
+        return new AuthorizationFilter(tokenService.getUserDetailsService(), tokenService, tokenRepo);
     }
 
     @Bean

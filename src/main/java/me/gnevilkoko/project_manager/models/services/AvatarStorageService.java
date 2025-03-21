@@ -1,5 +1,6 @@
 package me.gnevilkoko.project_manager.models.services;
 
+import jakarta.annotation.Nullable;
 import me.gnevilkoko.project_manager.models.entities.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +26,37 @@ public class AvatarStorageService {
         this.storagePath = System.getProperty("user.dir")+storagePath;
     }
 
+    @Nullable
+    public String getAvatarFilePath(User user){
+        File userFolder = new File(storagePath + "/" + user.getUsername().toLowerCase());
+        String avatarFileName = null;
+
+        for(File file : userFolder.listFiles()) {
+            if(file.isFile() && file.getName().startsWith("avatar")){
+                avatarFileName = file.getName();
+                break;
+            }
+        }
+
+        return storagePath + "/" + user.getUsername().toLowerCase()+"/"+avatarFileName;
+    }
+
+    public byte[] getAvatar(User user) throws IOException {
+        File userFolder = new File(storagePath + "/" + user.getUsername().toLowerCase());
+        if(!userFolder.exists()){
+            userFolder.mkdirs();
+            generateAvatar(user);
+        }
+
+        String avatarFileName = getAvatarFilePath(user);
+
+        File avatarFile = new File(getAvatarFilePath(user));
+        if(!avatarFile.exists()){
+            generateAvatar(user);
+        }
+        return Files.readAllBytes(avatarFile.toPath());
+    }
+
     public boolean uploadCustomAvatar(User user, MultipartFile file) throws IOException {
         String contentType = file.getContentType();
         if (contentType == null) {
@@ -45,6 +77,16 @@ public class AvatarStorageService {
         File parentFile = new File(resultFile.getParent());
         if (!parentFile.exists()) {
             parentFile.mkdirs();
+        } else {
+            String path = getAvatarFilePath(user);
+            if(path != null){
+                File alreadyExistFile = new File(path);
+                boolean deleteRes = alreadyExistFile.delete();
+                if(!deleteRes){
+                    return false;
+                }
+            }
+
         }
 
         Files.copy(file.getInputStream(), resultFile.toPath());

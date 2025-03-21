@@ -173,10 +173,10 @@ public class AuthorizationController {
 
             if (!imageStatus) {
                 logger.warn("Avatar upload failed for user: {}", user.getUsername());
-                throw new FailedToSaveImageException(HttpStatus.EXPECTATION_FAILED, "Wrong avatar file");
+                throw new FailedToOperateImageException(HttpStatus.EXPECTATION_FAILED, "Wrong avatar file");
             }
         } catch (IOException e) {
-            throw new FailedToSaveImageException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to save image");
+            throw new FailedToOperateImageException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to save image");
         }
 
 

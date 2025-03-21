@@ -4,9 +4,11 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import me.gnevilkoko.project_manager.models.entities.BearerToken;
 import me.gnevilkoko.project_manager.models.exceptions.BaseApiException;
 import me.gnevilkoko.project_manager.models.exceptions.TokenIsNotValid;
 import me.gnevilkoko.project_manager.models.exceptions.TokenNotFoundException;
+import me.gnevilkoko.project_manager.models.repositories.BearerTokenRepo;
 import me.gnevilkoko.project_manager.models.services.BearerTokenService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -20,6 +22,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 public class AuthorizationFilter extends OncePerRequestFilter {
@@ -30,12 +33,14 @@ public class AuthorizationFilter extends OncePerRequestFilter {
     };
 
     private UserDetailsService userDetailsService;
+    private BearerTokenRepo tokenRepo;
     private BearerTokenService tokenService;
 
     @Autowired
-    public AuthorizationFilter(UserDetailsService userDetailsService, BearerTokenService tokenService) {
+    public AuthorizationFilter(UserDetailsService userDetailsService, BearerTokenService tokenService, BearerTokenRepo tokenRepo) {
         this.userDetailsService = userDetailsService;
         this.tokenService = tokenService;
+        this.tokenRepo = tokenRepo;
     }
 
     @Override
@@ -54,10 +59,16 @@ public class AuthorizationFilter extends OncePerRequestFilter {
            }
 
            String token = authorizationHeader.substring(7);
+           Optional<BearerToken> optionalToken = tokenRepo.findByToken(token);
+           if(optionalToken.isEmpty()){
+               throw new TokenNotFoundException();
+           }
+
            UserDetails userDetails = userDetailsService.loadUserByUsername(token);
+           BearerToken bearerToken = optionalToken.get();
 
            UsernamePasswordAuthenticationToken authenticationToken =
-                   new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                   new UsernamePasswordAuthenticationToken(userDetails, bearerToken, userDetails.getAuthorities());
            authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
            if(!tokenService.isTokenValid(userDetails.getUsername())){
                throw new TokenIsNotValid();
