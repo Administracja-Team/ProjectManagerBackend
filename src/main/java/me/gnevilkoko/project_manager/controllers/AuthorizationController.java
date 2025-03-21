@@ -70,6 +70,48 @@ public class AuthorizationController {
 
     @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Registration of new user")
+    @ApiResponses(
+            value = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "User was successfully registered"
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Validation errors occurred",
+                            content = @Content(
+                                    schema = @Schema(implementation = ValidationExceptionExample.class)
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "409",
+                            description = "Email or username already exist",
+                            content = @Content(
+                                    schema = @Schema(implementation = RegisteringUserDataAlreadyExistException.class),
+                                    examples = {
+                                            @ExampleObject(
+                                                    value = "{\"code\": 0, \"message\": \"User field \\\"joe@example.com\\\" already exist\"}"
+                                            ),
+                                            @ExampleObject(
+                                                    value = "{\"code\": 1, \"message\": \"User field \\\"joe_doe\\\" already exist\"}"
+                                            )
+                                    }
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "417",
+                            description = "Received wrong image (only .png/.jpg accepted)",
+                            content = @Content(
+                                    schema = @Schema(implementation = WrongCredentialsException.class),
+                                    examples = {
+                                            @ExampleObject(
+                                                    value = "{\"message\": \"some additional information\"}"
+                                            )
+                                    }
+                            )
+                    )
+            }
+    )
     public ResponseEntity<BearerTokenDTO> registerUser(
             @Parameter(
                     name = "user",
