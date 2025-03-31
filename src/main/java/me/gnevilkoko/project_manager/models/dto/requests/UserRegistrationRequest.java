@@ -26,7 +26,6 @@ public class UserRegistrationRequest {
     @NotBlank(message = "Can't be blank")
     @Size(min = 3, max = 64, message = "Length must be >= 3 and <= 64")
     @Schema(
-            description = "Пароль должен содержать от 3 до 64 символов, допускаются только латинские буквы и цифры",
             minLength = 3,
             maxLength = 64,
             example = "123456"
