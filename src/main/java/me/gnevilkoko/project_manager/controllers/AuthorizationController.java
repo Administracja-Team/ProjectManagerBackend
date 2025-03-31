@@ -221,7 +221,17 @@ public class AuthorizationController {
                     )
             }
     )
-
+    @RequestBody(
+            description = "Login user data",
+            required = true,
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = UserLoginRequest.class),
+                    examples = @ExampleObject(
+                            value = "{\"identifier\": \"john@example.com\", \"password\": \"123456\"}"
+                    )
+            )
+    )
     public ResponseEntity<BearerTokenDTO> loginUser(@Valid @org.springframework.web.bind.annotation.RequestBody UserLoginRequest request){
         logger.debug("Authorization attempt with data: {}", request);
 
