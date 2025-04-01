@@ -35,4 +35,7 @@ public class UserUpdateProfileRequest {
     @JsonProperty("language_code")
     @Schema(example = "pl")
     private String languageCode;
+
+    @Schema(example = "Any information about person")
+    private String description;
 }

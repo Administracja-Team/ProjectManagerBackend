@@ -26,6 +26,8 @@ public class UserDTO {
     @JsonProperty("registered_at")
     private LocalDateTime registeredAt;
 
+    private String description;
+
     public UserDTO(User user) {
         this.username = user.getUsername();
         this.email = user.getEmail();
@@ -33,5 +35,6 @@ public class UserDTO {
         this.surname = user.getSurname();
         this.languageCode = user.getLanguageCode();
         this.registeredAt = user.getRegisteredAt();
+        this.description = user.getDescription();
     }
 }
