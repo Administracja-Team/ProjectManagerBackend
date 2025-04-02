@@ -10,6 +10,8 @@ import me.gnevilkoko.project_manager.models.entities.ProjectMember;
 @AllArgsConstructor
 @NoArgsConstructor
 public class OtherProjectMemberDTO {
+
+    @JsonProperty("member_id")
     private long id;
     private UserDTO user;
 

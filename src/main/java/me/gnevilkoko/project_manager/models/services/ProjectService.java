@@ -7,6 +7,7 @@ import me.gnevilkoko.project_manager.models.entities.Project;
 import me.gnevilkoko.project_manager.models.entities.ProjectInvitationCode;
 import me.gnevilkoko.project_manager.models.entities.ProjectMember;
 import me.gnevilkoko.project_manager.models.entities.User;
+import me.gnevilkoko.project_manager.models.exceptions.MemberNotFoundException;
 import me.gnevilkoko.project_manager.models.repositories.ProjectInvitationCodeRepo;
 import me.gnevilkoko.project_manager.models.repositories.ProjectMemberRepo;
 import me.gnevilkoko.project_manager.models.repositories.ProjectRepo;
@@ -67,6 +68,10 @@ public class ProjectService {
             memberDtos.add(new ProjectMemberDTO(member));
         }
         return memberDtos;
+    }
+
+    public ProjectMember getProjectMemberOrThrow(long memberId) {
+        return memberRepo.findById(memberId).orElseThrow(MemberNotFoundException::new);
     }
 
     @Transactional

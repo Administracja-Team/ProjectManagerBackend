@@ -1,5 +1,6 @@
 package me.gnevilkoko.project_manager.models.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -16,6 +17,7 @@ import java.util.List;
 public class ProjectMemberDTO {
 
     @JsonProperty("member_id")
+    @JsonIgnore
     private long id;
 
     private ProjectDTO project;

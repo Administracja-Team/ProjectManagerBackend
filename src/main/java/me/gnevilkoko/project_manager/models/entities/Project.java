@@ -32,4 +32,8 @@ public class Project {
     public void addMember(ProjectMember projectMember) {
         members.add(projectMember);
     }
+
+    public void removeMember(ProjectMember projectMember) {
+        members.remove(projectMember);
+    }
 }

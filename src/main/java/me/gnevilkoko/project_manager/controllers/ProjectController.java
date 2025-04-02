@@ -2,7 +2,6 @@ package me.gnevilkoko.project_manager.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -10,16 +9,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import me.gnevilkoko.project_manager.models.dto.ProjectMemberDTO;
 import me.gnevilkoko.project_manager.models.dto.requests.ProjectCreateRequest;
+import me.gnevilkoko.project_manager.models.dto.requests.StringRequest;
 import me.gnevilkoko.project_manager.models.entities.BearerToken;
 import me.gnevilkoko.project_manager.models.entities.Project;
 import me.gnevilkoko.project_manager.models.entities.ProjectInvitationCode;
 import me.gnevilkoko.project_manager.models.entities.ProjectMember;
 import me.gnevilkoko.project_manager.models.entities.User;
-import me.gnevilkoko.project_manager.models.exceptions.AlreadyConnectedException;
-import me.gnevilkoko.project_manager.models.exceptions.NotEnoughPermissionsException;
-import me.gnevilkoko.project_manager.models.exceptions.ProjectNotFoundException;
-import me.gnevilkoko.project_manager.models.exceptions.WrongInvitationCodeException;
+import me.gnevilkoko.project_manager.models.exceptions.*;
 import me.gnevilkoko.project_manager.models.repositories.ProjectInvitationCodeRepo;
+import me.gnevilkoko.project_manager.models.repositories.ProjectMemberRepo;
 import me.gnevilkoko.project_manager.models.repositories.ProjectRepo;
 import me.gnevilkoko.project_manager.models.services.ProjectService;
 import org.slf4j.Logger;
@@ -40,15 +38,17 @@ import java.util.Optional;
 public class ProjectController {
 
     private final ProjectRepo projectRepo;
+    private final ProjectMemberRepo memberRepo;
     private final ProjectInvitationCodeRepo codeRepo;
     private final ProjectService projectService;
     private static final Logger logger = LoggerFactory.getLogger(ProjectController.class);
 
     @Autowired
-    public ProjectController(ProjectService projectService, ProjectRepo projectRepo, ProjectInvitationCodeRepo codeRepo) {
+    public ProjectController(ProjectService projectService, ProjectRepo projectRepo, ProjectInvitationCodeRepo codeRepo, ProjectMemberRepo memberRepo) {
         this.projectService = projectService;
         this.projectRepo = projectRepo;
         this.codeRepo = codeRepo;
+        this.memberRepo = memberRepo;
     }
 
     @PostMapping("/create")
@@ -141,6 +141,106 @@ public class ProjectController {
         logger.info("User {} connected to project id: {} using invitation code {}", user.getUsername(), project.getId(), code);
         return ResponseEntity.ok(new ProjectMemberDTO(projectMember));
     }
+
+    @PostMapping("/member/{member_id}/descriptive-role")
+    @Operation(summary = "Update user descriptive role in project where you admin/owner")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Member role set successfully"),
+            @ApiResponse(responseCode = "404", description = "Member is not found",
+                    content = @Content(schema = @Schema(implementation = MemberNotFoundException.class))),
+            @ApiResponse(responseCode = "403", description = "User is not admin or owner",
+                    content = @Content(schema = @Schema(implementation = NotEnoughPermissionsException.class)))
+    })
+    public ResponseEntity<Void> setRoleToMember(@PathVariable("member_id") long memberId, @org.springframework.web.bind.annotation.RequestBody StringRequest request){
+        User user = ((BearerToken) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUser();
+        ProjectMember member = projectService.getProjectMemberOrThrow(memberId);
+        Project project = member.getProject();
+
+        if(!projectService.isUserHasAdminPermissionInProject(user.getId(), project.getId())){
+            throw new NotEnoughPermissionsException();
+        }
+
+        member.setDescriptiveRole(request.getPayload());
+        memberRepo.save(member);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/member/{member_id}/system-role")
+    @Operation(summary = "Update user system role in project where you admin/owner", description = "Can be set only to MEMBER or ADMIN")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Member role set successfully"),
+            @ApiResponse(responseCode = "404", description = "Member is not found",
+                    content = @Content(schema = @Schema(implementation = MemberNotFoundException.class))),
+            @ApiResponse(responseCode = "403", description = "User is not admin or owner",
+                    content = @Content(schema = @Schema(implementation = NotEnoughPermissionsException.class))),
+            @ApiResponse(responseCode = "400", description = "Received something wrong", content = @Content(schema = @Schema(implementation = ReceivedWrongDataException.class)))
+    })
+    public ResponseEntity<Void> setSystemRoleToMember(@PathVariable("member_id") long memberId, @org.springframework.web.bind.annotation.RequestBody StringRequest request){
+        User user = ((BearerToken) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUser();
+        ProjectMember member = projectService.getProjectMemberOrThrow(memberId);
+
+        Project project = member.getProject();
+        if(!projectService.isUserHasAdminPermissionInProject(user.getId(), project.getId())){
+            throw new NotEnoughPermissionsException();
+        }
+
+        if(member.getUser().getId() == user.getId()){
+            throw new ReceivedWrongDataException("You can't change your system role");
+        }
+
+        if(member.getSystemRole() == ProjectMember.SystemRole.OWNER){
+            throw new NotEnoughPermissionsException();
+        }
+
+        ProjectMember.SystemRole systemRole;
+        try {
+            systemRole = ProjectMember.SystemRole.valueOf(request.getPayload().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new ReceivedWrongDataException("System role can't be \""+request.getPayload()+"\"");
+        }
+
+        if(systemRole == ProjectMember.SystemRole.OWNER){
+            throw new ReceivedWrongDataException("System role can't be OWNER for this user");
+        }
+        member.setSystemRole(systemRole);
+        memberRepo.save(member);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/member/{member_id}/delete")
+    @Operation(summary = "Delete member from project if user is admin/owner")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Member was deleted"),
+            @ApiResponse(responseCode = "404", description = "Member is not found",
+                    content = @Content(schema = @Schema(implementation = MemberNotFoundException.class))),
+            @ApiResponse(responseCode = "403", description = "User is not admin or owner",
+                    content = @Content(schema = @Schema(implementation = NotEnoughPermissionsException.class))),
+            @ApiResponse(responseCode = "400", description = "Received something wrong (User is deleting himself)", content = @Content(schema = @Schema(implementation = ReceivedWrongDataException.class)))
+    })
+    public ResponseEntity<Void> deleteUserFromProject(@PathVariable("member_id") long memberId){
+        User user = ((BearerToken) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUser();
+        ProjectMember member = projectService.getProjectMemberOrThrow(memberId);
+        Project project = member.getProject();
+
+        if(!projectService.isUserHasAdminPermissionInProject(user.getId(), project.getId())){
+            throw new NotEnoughPermissionsException();
+        }
+
+        if(member.getUser().getId() == user.getId()){
+            throw new ReceivedWrongDataException("You can't delete yourself from project");
+        }
+
+        if(member.getSystemRole() == ProjectMember.SystemRole.OWNER){
+            throw new NotEnoughPermissionsException();
+        }
+
+        project.removeMember(member);
+        projectRepo.save(project);
+        return ResponseEntity.noContent().build();
+    }
+
 
     @GetMapping("/list")
     @Operation(summary = "Get all user projects",
