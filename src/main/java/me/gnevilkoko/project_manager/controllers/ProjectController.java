@@ -3,7 +3,6 @@ package me.gnevilkoko.project_manager.controllers;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -58,10 +57,7 @@ public class ProjectController {
             @ApiResponse(responseCode = "200", description = "Project was created successfully",
                     content = @Content(schema = @Schema(implementation = ProjectMemberDTO.class))),
     })
-    public ResponseEntity<ProjectMemberDTO> createProject(
-            @RequestBody(description = "Project creation data", required = true,
-                    content = @Content(schema = @Schema(implementation = ProjectCreateRequest.class)))
-            ProjectCreateRequest request) {
+    public ResponseEntity<ProjectMemberDTO> createProject(@org.springframework.web.bind.annotation.RequestBody ProjectCreateRequest request) {
         logger.info("Received request to create project with name: {}", request.getName());
         User user = ((BearerToken) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUser();
 
@@ -73,7 +69,8 @@ public class ProjectController {
         projectRepo.save(project);
         logger.info("User {} assigned as owner to project id: {}", user.getUsername(), project.getId());
 
-        return ResponseEntity.ok(new ProjectMemberDTO(projectMember));
+        ProjectMemberDTO test = new ProjectMemberDTO(projectMember);
+        return ResponseEntity.ok(test);
     }
 
     @PostMapping("/{project_id}/code/create")
