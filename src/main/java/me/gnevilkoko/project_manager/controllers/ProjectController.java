@@ -112,7 +112,7 @@ public class ProjectController {
             @ApiResponse(responseCode = "409", description = "User is already connected to the project",
                     content = @Content(schema = @Schema(implementation = AlreadyConnectedException.class)))
     })
-    public ResponseEntity<ProjectMemberDTO> connectToProject(@PathVariable(name = "code") String code) {
+    public ResponseEntity<ShortProjectMemberDTO> connectToProject(@PathVariable(name = "code") String code) {
         logger.info("User requests to connect to project with invitation code: {}", code);
         Optional<ProjectInvitationCode> optionalInvitationCode = codeRepo.findByCode(code);
         if (optionalInvitationCode.isEmpty()) {
@@ -137,7 +137,7 @@ public class ProjectController {
         project.addMember(projectMember);
         projectRepo.save(project);
         logger.info("User {} connected to project id: {} using invitation code {}", user.getUsername(), project.getId(), code);
-        return ResponseEntity.ok(new ProjectMemberDTO(projectMember));
+        return ResponseEntity.ok(new ShortProjectMemberDTO(projectMember));
     }
 
     @PostMapping("/member/{member_id}/descriptive-role")

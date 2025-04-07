@@ -109,9 +109,10 @@ public class ProjectService {
         if(optionalProject.isEmpty())
             return false;
 
+        Project project = optionalProject.get();
         User user = userRepo.findById(userId).get();
         for(ProjectMember member : user.getProjects()) {
-            if(member.getUser().getId() == user.getId()){
+            if(member.getProject().getId() == project.getId()){
                 return true;
             }
         }
