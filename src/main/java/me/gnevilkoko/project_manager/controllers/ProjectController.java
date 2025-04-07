@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import me.gnevilkoko.project_manager.models.dto.ProjectMemberDTO;
+import me.gnevilkoko.project_manager.models.dto.ShortProjectMemberDTO;
 import me.gnevilkoko.project_manager.models.dto.requests.ProjectCreateRequest;
 import me.gnevilkoko.project_manager.models.dto.requests.StringRequest;
 import me.gnevilkoko.project_manager.models.entities.BearerToken;
@@ -238,7 +239,6 @@ public class ProjectController {
         return ResponseEntity.noContent().build();
     }
 
-
     @GetMapping("/list")
     @Operation(summary = "Get all user projects",
             description = "Returns a list of all projects where the current user is assigned")
@@ -246,11 +246,29 @@ public class ProjectController {
             @ApiResponse(responseCode = "200", description = "List of projects returned successfully",
                     content = @Content(schema = @Schema(implementation = ProjectMemberDTO.class)))
     })
-    public ResponseEntity<List<ProjectMemberDTO>> getAllUserProjects() {
+    public ResponseEntity<List<ShortProjectMemberDTO>> getAllUserProjects() {
         logger.info("Request to get all projects for current user");
         User user = ((BearerToken) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUser();
-        List<ProjectMemberDTO> memberDtos = projectService.getAllUserProjects(user);
+        List<ShortProjectMemberDTO> memberDtos = projectService.getShortAllUserProjects(user);
+
+
         logger.debug("Found {} projects for user {}", memberDtos.size(), user.getUsername());
         return ResponseEntity.ok(memberDtos);
     }
+
+
+//    @GetMapping("/list")
+//    @Operation(summary = "Get all user projects",
+//            description = "Returns a list of all projects where the current user is assigned")
+//    @ApiResponses(value = {
+//            @ApiResponse(responseCode = "200", description = "List of projects returned successfully",
+//                    content = @Content(schema = @Schema(implementation = ProjectMemberDTO.class)))
+//    })
+//    public ResponseEntity<List<ProjectMemberDTO>> getAllUserProjects() {
+//        logger.info("Request to get all projects for current user");
+//        User user = ((BearerToken) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUser();
+//        List<ProjectMemberDTO> memberDtos = projectService.getAllUserProjects(user);
+//        logger.debug("Found {} projects for user {}", memberDtos.size(), user.getUsername());
+//        return ResponseEntity.ok(memberDtos);
+//    }
 }

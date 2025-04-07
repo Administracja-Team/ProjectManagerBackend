@@ -1,6 +1,7 @@
 package me.gnevilkoko.project_manager.models.services;
 
 import jakarta.transaction.Transactional;
+import me.gnevilkoko.project_manager.models.dto.ShortProjectMemberDTO;
 import me.gnevilkoko.project_manager.models.dto.ProjectMemberDTO;
 import me.gnevilkoko.project_manager.models.dto.requests.ProjectCreateRequest;
 import me.gnevilkoko.project_manager.models.entities.Project;
@@ -66,6 +67,17 @@ public class ProjectService {
 
         for (ProjectMember member : user.getProjects()) {
             memberDtos.add(new ProjectMemberDTO(member));
+        }
+        return memberDtos;
+    }
+
+    @Transactional
+    public List<ShortProjectMemberDTO> getShortAllUserProjects(User user) {
+        user = userRepo.findById(user.getId()).get();
+        List<ShortProjectMemberDTO> memberDtos = new ArrayList<>();
+
+        for (ProjectMember member : user.getProjects()) {
+            memberDtos.add(new ShortProjectMemberDTO(member));
         }
         return memberDtos;
     }
