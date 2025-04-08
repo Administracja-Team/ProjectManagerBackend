@@ -38,7 +38,7 @@ public class User {
     @JsonProperty("registered_at")
     private LocalDateTime registeredAt;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<ProjectMember> projects;
 
     public User(String username, String email, String hash, String name, String surname, String languageCode, LocalDateTime registeredAt) {

@@ -45,7 +45,7 @@ public class ProjectService {
         this.codeExpire = codeExpire;
     }
 
-    public ProjectMember generateProjectMember(Project project, User user, ProjectMember.SystemRole role){
+    public ProjectMember createProjectMember(Project project, User user, ProjectMember.SystemRole role){
         ProjectMember projectMember = new ProjectMember(project, user);
         projectMember.setSystemRole(role);
         projectMember = memberRepo.save(projectMember);
@@ -80,6 +80,19 @@ public class ProjectService {
             memberDtos.add(new ShortProjectMemberDTO(member));
         }
         return memberDtos;
+    }
+
+    @Transactional
+    public Optional<ProjectMemberDTO> getProjectDetails(User user, long projectId) {
+        Optional<Project> optionalProject = projectRepo.findById(projectId);
+        if(optionalProject.isEmpty())
+            return Optional.empty();
+
+        ProjectMember projectMember = user.getProjects().stream().filter(pr -> pr.getProject().getId() == projectId).findFirst().orElse(null);
+        if(projectMember == null)
+            return Optional.empty();
+
+        return Optional.of(new ProjectMemberDTO(projectMember));
     }
 
     public ProjectMember getProjectMemberOrThrow(long memberId) {

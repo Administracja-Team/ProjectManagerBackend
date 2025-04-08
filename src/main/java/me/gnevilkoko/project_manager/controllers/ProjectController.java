@@ -1,6 +1,7 @@
 package me.gnevilkoko.project_manager.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -65,7 +66,7 @@ public class ProjectController {
         Project project = projectService.createProject(request);
         logger.debug("Project created with id: {}", project.getId());
 
-        ProjectMember projectMember = projectService.generateProjectMember(project, user, ProjectMember.SystemRole.OWNER);
+        ProjectMember projectMember = projectService.createProjectMember(project, user, ProjectMember.SystemRole.OWNER);
         project.addMember(projectMember);
         projectRepo.save(project);
         logger.info("User {} assigned as owner to project id: {}", user.getUsername(), project.getId());
@@ -133,7 +134,7 @@ public class ProjectController {
             throw new AlreadyConnectedException();
         }
 
-        ProjectMember projectMember = projectService.generateProjectMember(project, user, ProjectMember.SystemRole.MEMBER);
+        ProjectMember projectMember = projectService.createProjectMember(project, user, ProjectMember.SystemRole.MEMBER);
         project.addMember(projectMember);
         projectRepo.save(project);
         logger.info("User {} connected to project id: {} using invitation code {}", user.getUsername(), project.getId(), code);
@@ -243,17 +244,44 @@ public class ProjectController {
     @Operation(summary = "Get all user projects",
             description = "Returns a list of all projects where the current user is assigned")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "List of projects returned successfully",
-                    content = @Content(schema = @Schema(implementation = ProjectMemberDTO.class)))
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "List of projects returned successfully",
+                    content = @Content(
+                            array = @ArraySchema(schema = @Schema(implementation = ShortProjectMemberDTO.class))
+                    )
+            )
     })
     public ResponseEntity<List<ShortProjectMemberDTO>> getAllUserProjects() {
-        logger.info("Request to get all projects for current user");
         User user = ((BearerToken) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUser();
+        logger.info("Request to get all projects for {} user", user.getId());
         List<ShortProjectMemberDTO> memberDtos = projectService.getShortAllUserProjects(user);
 
 
         logger.debug("Found {} projects for user {}", memberDtos.size(), user.getUsername());
         return ResponseEntity.ok(memberDtos);
+    }
+
+    @GetMapping("/{project_id}")
+    @Operation(summary = "Get project details",
+            description = "Returns information about project")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "List of projects returned successfully",
+                    content = @Content(schema = @Schema(implementation = ProjectMemberDTO.class)))
+    })
+    public ResponseEntity<ProjectMemberDTO> getProjectDetails(@PathVariable("project_id") long projectId) {
+        logger.info("Request to get all projects for current user");
+        User user = ((BearerToken) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUser();
+
+        if(!projectService.isUserConnectedToProject(user.getId(), projectId)){
+            throw new NotEnoughPermissionsException();
+        }
+
+        Optional<ProjectMemberDTO> optionalProjectMember = projectService.getProjectDetails(user, projectId);
+        if(optionalProjectMember.isEmpty())
+            throw new MemberNotFoundException();
+
+        return ResponseEntity.ok(optionalProjectMember.get());
     }
 
 
