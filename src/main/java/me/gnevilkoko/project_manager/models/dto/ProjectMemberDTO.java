@@ -40,9 +40,6 @@ public class ProjectMemberDTO {
 
         others = new ArrayList<>();
         for(ProjectMember otherMember : project.getMembers()) {
-            if(this.id == otherMember.getId()) {
-                continue;
-            }
 
             others.add(new OtherProjectMemberDTO(otherMember));
         }
