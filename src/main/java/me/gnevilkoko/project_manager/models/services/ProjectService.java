@@ -9,6 +9,8 @@ import me.gnevilkoko.project_manager.models.entities.ProjectInvitationCode;
 import me.gnevilkoko.project_manager.models.entities.ProjectMember;
 import me.gnevilkoko.project_manager.models.entities.User;
 import me.gnevilkoko.project_manager.models.exceptions.MemberNotFoundException;
+import me.gnevilkoko.project_manager.models.exceptions.ProjectNotFoundException;
+import me.gnevilkoko.project_manager.models.exceptions.ReceivedWrongDataException;
 import me.gnevilkoko.project_manager.models.repositories.ProjectInvitationCodeRepo;
 import me.gnevilkoko.project_manager.models.repositories.ProjectMemberRepo;
 import me.gnevilkoko.project_manager.models.repositories.ProjectRepo;
@@ -99,6 +101,38 @@ public class ProjectService {
         return memberRepo.findById(memberId).orElseThrow(MemberNotFoundException::new);
     }
 
+    public Project getProjectOrThrow(long projectId) {
+        return projectRepo.findById(projectId).orElseThrow(ProjectNotFoundException::new);
+    }
+
+    public ProjectMember getProjectMemberOrThrow(long projectId, long userId) {
+        Project project = getProjectOrThrow(projectId);
+        ProjectMember member = project.getMembers().stream().filter(m -> m.getUser().getId() == userId).findFirst().orElseThrow(MemberNotFoundException::new);
+        return member;
+    }
+
+
+    @Transactional
+    public void leaveProject(long projectId, long userId) {
+        ProjectMember member = getProjectMemberOrThrow(projectId, userId);
+
+        if (member.getSystemRole() == ProjectMember.SystemRole.OWNER) {
+            throw new ReceivedWrongDataException("You can't leave from your project");
+        }
+
+        if(!isUserConnectedToProject(userId, projectId)){
+            throw new ReceivedWrongDataException("You are not connected to this project");
+        }
+
+        member.getUser().getProjects().remove(member);
+        memberRepo.save(member);
+    }
+
+    @Transactional
+    public void deleteProject(Project project) {
+        projectRepo.delete(project);
+    }
+
     @Transactional
     public boolean isUserHasAdminPermissionInProject(long userId, long projectId) {
         Optional<Project> optionalProject = projectRepo.findById(projectId);
@@ -148,6 +182,11 @@ public class ProjectService {
 
         codeRepo.save(invitationCode);
         return invitationCode;
+    }
+
+    @Transactional
+    public void deleteMember(ProjectMember pm) {
+        memberRepo.delete(pm);
     }
 
     @Scheduled(fixedDelay = 60000)

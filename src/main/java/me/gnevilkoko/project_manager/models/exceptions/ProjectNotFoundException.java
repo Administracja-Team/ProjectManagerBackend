@@ -6,4 +6,8 @@ public class ProjectNotFoundException extends BaseApiException{
     public ProjectNotFoundException(long id) {
         super(HttpStatus.NOT_FOUND, "Project(ID: "+id+") was not found in database");
     }
+
+    public ProjectNotFoundException() {
+        super(HttpStatus.NOT_FOUND, "Project was not found in database");
+    }
 }

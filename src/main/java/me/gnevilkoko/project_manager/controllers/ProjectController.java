@@ -7,28 +7,33 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import me.gnevilkoko.project_manager.models.dto.ProjectMemberDTO;
 import me.gnevilkoko.project_manager.models.dto.ShortProjectMemberDTO;
+import me.gnevilkoko.project_manager.models.dto.ShortSprintDTO;
+import me.gnevilkoko.project_manager.models.dto.SprintDTO;
+import me.gnevilkoko.project_manager.models.dto.requests.CreateSprintRequest;
 import me.gnevilkoko.project_manager.models.dto.requests.ProjectCreateRequest;
 import me.gnevilkoko.project_manager.models.dto.requests.StringRequest;
-import me.gnevilkoko.project_manager.models.entities.BearerToken;
-import me.gnevilkoko.project_manager.models.entities.Project;
-import me.gnevilkoko.project_manager.models.entities.ProjectInvitationCode;
-import me.gnevilkoko.project_manager.models.entities.ProjectMember;
-import me.gnevilkoko.project_manager.models.entities.User;
+import me.gnevilkoko.project_manager.models.entities.*;
 import me.gnevilkoko.project_manager.models.exceptions.*;
 import me.gnevilkoko.project_manager.models.repositories.ProjectInvitationCodeRepo;
 import me.gnevilkoko.project_manager.models.repositories.ProjectMemberRepo;
 import me.gnevilkoko.project_manager.models.repositories.ProjectRepo;
+import me.gnevilkoko.project_manager.models.repositories.SprintRepo;
+import me.gnevilkoko.project_manager.models.services.AvatarStorageService;
 import me.gnevilkoko.project_manager.models.services.ProjectService;
+import me.gnevilkoko.project_manager.models.services.SprintService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -42,38 +47,90 @@ public class ProjectController {
     private final ProjectMemberRepo memberRepo;
     private final ProjectInvitationCodeRepo codeRepo;
     private final ProjectService projectService;
+    private final AvatarStorageService avatarService;
     private static final Logger logger = LoggerFactory.getLogger(ProjectController.class);
 
     @Autowired
-    public ProjectController(ProjectService projectService, ProjectRepo projectRepo, ProjectInvitationCodeRepo codeRepo, ProjectMemberRepo memberRepo) {
+    public ProjectController(ProjectService projectService, ProjectRepo projectRepo, ProjectInvitationCodeRepo codeRepo, ProjectMemberRepo memberRepo, AvatarStorageService avatarService) {
         this.projectService = projectService;
         this.projectRepo = projectRepo;
         this.codeRepo = codeRepo;
         this.memberRepo = memberRepo;
+        this.avatarService = avatarService;
     }
 
-    @PostMapping("/create")
-    @Operation(summary = "Create new empty project and assign user as owner of this project",
-            description = "Creates a new project and assigns the currently authenticated user as the owner")
+    @GetMapping("/list")
+    @Operation(summary = "Get all user projects",
+            description = "Returns a list of all projects where the current user is assigned")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Project was created successfully",
-                    content = @Content(schema = @Schema(implementation = ProjectMemberDTO.class))),
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "List of projects returned successfully",
+                    content = @Content(
+                            array = @ArraySchema(schema = @Schema(implementation = ShortProjectMemberDTO.class))
+                    )
+            )
     })
-    public ResponseEntity<ProjectMemberDTO> createProject(@org.springframework.web.bind.annotation.RequestBody ProjectCreateRequest request) {
-        logger.info("Received request to create project with name: {}", request.getName());
+    public ResponseEntity<List<ShortProjectMemberDTO>> getAllUserProjects() {
+        User user = ((BearerToken) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUser();
+        logger.info("Request to get all projects for {} user", user.getId());
+        List<ShortProjectMemberDTO> memberDtos = projectService.getShortAllUserProjects(user);
+
+
+        logger.debug("Found {} projects for user {}", memberDtos.size(), user.getUsername());
+        return ResponseEntity.ok(memberDtos);
+    }
+
+    @GetMapping("/{project_id}")
+    @Operation(summary = "Get project details",
+            description = "Returns information about project")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "List of projects returned successfully",
+                    content = @Content(schema = @Schema(implementation = ProjectMemberDTO.class)))
+    })
+    public ResponseEntity<ProjectMemberDTO> getProjectDetails(@PathVariable("project_id") long projectId) {
+        logger.info("Request to get all projects for current user");
         User user = ((BearerToken) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUser();
 
-        Project project = projectService.createProject(request);
-        logger.debug("Project created with id: {}", project.getId());
+        if(!projectService.isUserConnectedToProject(user.getId(), projectId)){
+            throw new NotEnoughPermissionsException();
+        }
 
-        ProjectMember projectMember = projectService.createProjectMember(project, user, ProjectMember.SystemRole.OWNER);
-        project.addMember(projectMember);
-        projectRepo.save(project);
-        logger.info("User {} assigned as owner to project id: {}", user.getUsername(), project.getId());
+        Optional<ProjectMemberDTO> optionalProjectMember = projectService.getProjectDetails(user, projectId);
+        if(optionalProjectMember.isEmpty())
+            throw new MemberNotFoundException();
 
-        ProjectMemberDTO test = new ProjectMemberDTO(projectMember);
-        return ResponseEntity.ok(test);
+        return ResponseEntity.ok(optionalProjectMember.get());
     }
+
+    @Operation(
+            summary = "Get member avatar",
+            description = "Returns the avatar image (PNG) for the specified project member if you have access"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Avatar image returned successfully",
+                    content = @Content(mediaType = MediaType.IMAGE_PNG_VALUE)),
+            @ApiResponse(responseCode = "404", description = "Member not found",
+                    content = @Content(schema = @Schema(implementation = MemberNotFoundException.class))),
+            @ApiResponse(responseCode = "403", description = "User is not connected to this project",
+                    content = @Content(schema = @Schema(implementation = NotEnoughPermissionsException.class))),
+            @ApiResponse(responseCode = "500", description = "Failed to get avatar image",
+                    content = @Content(schema = @Schema(implementation = FailedToOperateImageException.class)))
+    })
+    @GetMapping(path="/member/{member_id}/avatar", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> getMemberAvatar(@PathVariable("member_id") long memberId)  {
+        User user = ((BearerToken) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUser();
+
+        ProjectMember requestingMember = projectService.getProjectMemberOrThrow(memberId);
+        ProjectMember member = projectService.getProjectMemberOrThrow(requestingMember.getProject().getId(), user.getId());
+
+        try {
+            return ResponseEntity.ok(avatarService.getAvatar(requestingMember.getUser()));
+        } catch (IOException e) {
+            throw new FailedToOperateImageException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to get avatar image");
+        }
+    }
+
 
     @PostMapping("/{project_id}/code/create")
     @Operation(summary = "Create invitation code for project",
@@ -139,6 +196,29 @@ public class ProjectController {
         projectRepo.save(project);
         logger.info("User {} connected to project id: {} using invitation code {}", user.getUsername(), project.getId(), code);
         return ResponseEntity.ok(new ShortProjectMemberDTO(projectMember));
+    }
+
+    @PostMapping("/create")
+    @Operation(summary = "Create new empty project and assign user as owner of this project",
+            description = "Creates a new project and assigns the currently authenticated user as the owner")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Project was created successfully",
+                    content = @Content(schema = @Schema(implementation = ProjectMemberDTO.class))),
+    })
+    public ResponseEntity<ProjectMemberDTO> createProject(@org.springframework.web.bind.annotation.RequestBody ProjectCreateRequest request) {
+        logger.info("Received request to create project with name: {}", request.getName());
+        User user = ((BearerToken) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUser();
+
+        Project project = projectService.createProject(request);
+        logger.debug("Project created with id: {}", project.getId());
+
+        ProjectMember projectMember = projectService.createProjectMember(project, user, ProjectMember.SystemRole.OWNER);
+        project.addMember(projectMember);
+        projectRepo.save(project);
+        logger.info("User {} assigned as owner to project id: {}", user.getUsername(), project.getId());
+
+        ProjectMemberDTO test = new ProjectMemberDTO(projectMember);
+        return ResponseEntity.ok(test);
     }
 
     @PostMapping("/member/{member_id}/descriptive-role")
@@ -235,68 +315,55 @@ public class ProjectController {
             throw new NotEnoughPermissionsException();
         }
 
-        project.removeMember(member);
-        projectRepo.save(project);
+        member.getUser().getProjects().remove(member);
+        memberRepo.save(member);
+
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/list")
-    @Operation(summary = "Get all user projects",
-            description = "Returns a list of all projects where the current user is assigned")
+    @Operation(
+            summary = "Leave project",
+            description = "Removes the current user from the specified project if they are not the owner"
+    )
     @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "List of projects returned successfully",
-                    content = @Content(
-                            array = @ArraySchema(schema = @Schema(implementation = ShortProjectMemberDTO.class))
-                    )
-            )
+            @ApiResponse(responseCode = "204", description = "User left project successfully"),
+            @ApiResponse(responseCode = "404", description = "Project membership not found",
+                    content = @Content(schema = @Schema(implementation = MemberNotFoundException.class))),
+            @ApiResponse(responseCode = "403", description = "User is not connected to this project",
+                    content = @Content(schema = @Schema(implementation = NotEnoughPermissionsException.class))),
+            @ApiResponse(responseCode = "400", description = "Owner cannot leave their own project",
+                    content = @Content(schema = @Schema(implementation = ReceivedWrongDataException.class)))
     })
-    public ResponseEntity<List<ShortProjectMemberDTO>> getAllUserProjects() {
+    @DeleteMapping("/leave/{project_id}")
+    public ResponseEntity<Void> leaveFromProject(@PathVariable("project_id") long projectId){
         User user = ((BearerToken) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUser();
-        logger.info("Request to get all projects for {} user", user.getId());
-        List<ShortProjectMemberDTO> memberDtos = projectService.getShortAllUserProjects(user);
-
-
-        logger.debug("Found {} projects for user {}", memberDtos.size(), user.getUsername());
-        return ResponseEntity.ok(memberDtos);
+        projectService.leaveProject(projectId, user.getId());
+        return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/{project_id}")
-    @Operation(summary = "Get project details",
-            description = "Returns information about project")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "List of projects returned successfully",
-                    content = @Content(schema = @Schema(implementation = ProjectMemberDTO.class)))
-    })
-    public ResponseEntity<ProjectMemberDTO> getProjectDetails(@PathVariable("project_id") long projectId) {
-        logger.info("Request to get all projects for current user");
-        User user = ((BearerToken) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUser();
 
-        if(!projectService.isUserConnectedToProject(user.getId(), projectId)){
+    @Operation(
+            summary = "Delete own project",
+            description = "Deletes the specified project along with all its members and data if the current user is the owner"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Project deleted successfully"),
+            @ApiResponse(responseCode = "404", description = "Project not found",
+                    content = @Content(schema = @Schema(implementation = ProjectNotFoundException.class))),
+            @ApiResponse(responseCode = "403", description = "User is not the project owner",
+                    content = @Content(schema = @Schema(implementation = NotEnoughPermissionsException.class)))
+    })
+    @DeleteMapping("/delete/{project_id}")
+    public ResponseEntity<Void> deleteOwnProject(@PathVariable("project_id") long projectId){
+        User user = ((BearerToken) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUser();
+        ProjectMember projectMember = projectService.getProjectMemberOrThrow(projectId, user.getId());
+        Project project = projectService.getProjectOrThrow(projectId);
+
+        if(projectMember.getSystemRole() != ProjectMember.SystemRole.OWNER){
             throw new NotEnoughPermissionsException();
         }
 
-        Optional<ProjectMemberDTO> optionalProjectMember = projectService.getProjectDetails(user, projectId);
-        if(optionalProjectMember.isEmpty())
-            throw new MemberNotFoundException();
-
-        return ResponseEntity.ok(optionalProjectMember.get());
+        projectService.deleteProject(project);
+        return ResponseEntity.noContent().build();
     }
-
-
-//    @GetMapping("/list")
-//    @Operation(summary = "Get all user projects",
-//            description = "Returns a list of all projects where the current user is assigned")
-//    @ApiResponses(value = {
-//            @ApiResponse(responseCode = "200", description = "List of projects returned successfully",
-//                    content = @Content(schema = @Schema(implementation = ProjectMemberDTO.class)))
-//    })
-//    public ResponseEntity<List<ProjectMemberDTO>> getAllUserProjects() {
-//        logger.info("Request to get all projects for current user");
-//        User user = ((BearerToken) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUser();
-//        List<ProjectMemberDTO> memberDtos = projectService.getAllUserProjects(user);
-//        logger.debug("Found {} projects for user {}", memberDtos.size(), user.getUsername());
-//        return ResponseEntity.ok(memberDtos);
-//    }
 }

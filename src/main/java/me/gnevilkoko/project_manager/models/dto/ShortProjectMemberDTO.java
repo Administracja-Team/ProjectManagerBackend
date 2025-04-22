@@ -13,8 +13,6 @@ import me.gnevilkoko.project_manager.models.entities.ProjectMember;
 @ToString
 public class ShortProjectMemberDTO {
 
-    //TODO: Sprintes informates (procentes, sprintes names, dead lines)
-
     private ProjectDTO project;
 
     @JsonProperty("system_role")

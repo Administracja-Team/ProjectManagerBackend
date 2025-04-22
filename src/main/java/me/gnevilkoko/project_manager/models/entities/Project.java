@@ -19,10 +19,18 @@ public class Project {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
     private String name;
+
+    @Column(columnDefinition = "TEXT")
     private String description;
 
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "project", cascade = CascadeType.REMOVE, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<ProjectMember> members = new ArrayList<>();
+
+    @OneToMany(mappedBy = "project",
+            cascade = CascadeType.REMOVE,
+            orphanRemoval = true,
+            fetch = FetchType.EAGER)
+    private List<Sprint> sprints = new ArrayList<>();
 
     public Project(String name, String description) {
         this.name = name;
@@ -33,7 +41,8 @@ public class Project {
         members.add(projectMember);
     }
 
-    public void removeMember(ProjectMember projectMember) {
-        members.remove(projectMember);
+    public void removeMember(ProjectMember pm) {
+        members.remove(pm);
+        pm.setProject(null);
     }
 }
