@@ -7,6 +7,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -49,6 +51,7 @@ public class SprintTask {
             joinColumns = @JoinColumn(name = "task_id"),
             inverseJoinColumns = @JoinColumn(name = "member_id")
     )
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private List<ProjectMember> implementers = new ArrayList<>();
 
     public enum Priority {

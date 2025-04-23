@@ -315,8 +315,7 @@ public class ProjectController {
             throw new NotEnoughPermissionsException();
         }
 
-        member.getUser().getProjects().remove(member);
-        memberRepo.save(member);
+        projectService.removeProjectMember(memberId);
 
         return ResponseEntity.noContent().build();
     }
@@ -337,7 +336,14 @@ public class ProjectController {
     @DeleteMapping("/leave/{project_id}")
     public ResponseEntity<Void> leaveFromProject(@PathVariable("project_id") long projectId){
         User user = ((BearerToken) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUser();
-        projectService.leaveProject(projectId, user.getId());
+        ProjectMember member = projectService.getProjectMemberOrThrow(projectId, user.getId());
+
+        if(member.getSystemRole() == ProjectMember.SystemRole.OWNER){
+            throw new ReceivedWrongDataException("You can't leave from your project");
+        }
+
+        projectService.removeProjectMember(member);
+
         return ResponseEntity.noContent().build();
     }
 

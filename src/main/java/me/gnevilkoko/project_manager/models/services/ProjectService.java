@@ -4,17 +4,11 @@ import jakarta.transaction.Transactional;
 import me.gnevilkoko.project_manager.models.dto.ShortProjectMemberDTO;
 import me.gnevilkoko.project_manager.models.dto.ProjectMemberDTO;
 import me.gnevilkoko.project_manager.models.dto.requests.ProjectCreateRequest;
-import me.gnevilkoko.project_manager.models.entities.Project;
-import me.gnevilkoko.project_manager.models.entities.ProjectInvitationCode;
-import me.gnevilkoko.project_manager.models.entities.ProjectMember;
-import me.gnevilkoko.project_manager.models.entities.User;
+import me.gnevilkoko.project_manager.models.entities.*;
 import me.gnevilkoko.project_manager.models.exceptions.MemberNotFoundException;
 import me.gnevilkoko.project_manager.models.exceptions.ProjectNotFoundException;
 import me.gnevilkoko.project_manager.models.exceptions.ReceivedWrongDataException;
-import me.gnevilkoko.project_manager.models.repositories.ProjectInvitationCodeRepo;
-import me.gnevilkoko.project_manager.models.repositories.ProjectMemberRepo;
-import me.gnevilkoko.project_manager.models.repositories.ProjectRepo;
-import me.gnevilkoko.project_manager.models.repositories.UserRepo;
+import me.gnevilkoko.project_manager.models.repositories.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -33,18 +27,20 @@ public class ProjectService {
     private ProjectRepo projectRepo;
     private UserRepo userRepo;
     private ProjectInvitationCodeRepo codeRepo;
+    private SprintTaskRepo sprintTaskRepo;
 
 
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private long codeExpire;
 
     @Autowired
-    public ProjectService(ProjectMemberRepo memberRepo, ProjectRepo projectRepo, UserRepo userRepo, ProjectInvitationCodeRepo codeRepo, @Value("${project.invitation-code.expire}") long codeExpire) {
+    public ProjectService(ProjectMemberRepo memberRepo, ProjectRepo projectRepo, UserRepo userRepo, ProjectInvitationCodeRepo codeRepo, SprintTaskRepo sprintTaskRepo, @Value("${project.invitation-code.expire}") long codeExpire) {
         this.memberRepo = memberRepo;
         this.projectRepo = projectRepo;
         this.userRepo = userRepo;
         this.codeRepo = codeRepo;
         this.codeExpire = codeExpire;
+        this.sprintTaskRepo = sprintTaskRepo;
     }
 
     public ProjectMember createProjectMember(Project project, User user, ProjectMember.SystemRole role){
@@ -95,6 +91,23 @@ public class ProjectService {
             return Optional.empty();
 
         return Optional.of(new ProjectMemberDTO(projectMember));
+    }
+
+    @Transactional
+    public void removeProjectMember(long memberId) {
+        ProjectMember member = getProjectMemberOrThrow(memberId);
+
+        removeProjectMember(member);
+    }
+
+    @Transactional
+    public void removeProjectMember(ProjectMember member) {
+        List<SprintTask> tasks = sprintTaskRepo.findAllByImplementersContains(member);
+        for (SprintTask task : tasks) {
+            task.getImplementers().remove(member);
+        }
+
+        memberRepo.delete(member);
     }
 
     public ProjectMember getProjectMemberOrThrow(long memberId) {
