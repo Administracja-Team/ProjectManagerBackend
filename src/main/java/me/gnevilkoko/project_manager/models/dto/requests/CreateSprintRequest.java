@@ -19,7 +19,7 @@ import java.util.List;
 @ToString
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class CreateSprintRequest {
-    @NotBlank
+    @NotBlank(message = "Can't be blank")
     private String name;
 
     private String description;
@@ -32,6 +32,6 @@ public class CreateSprintRequest {
     @JsonProperty("end_at")
     private LocalDateTime endAt;
 
-    @NotEmpty
+    @NotEmpty(message = "Can't be empty")
     private List<CreateTaskRequest> tasks;
 }

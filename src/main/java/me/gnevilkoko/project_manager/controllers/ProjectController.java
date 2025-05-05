@@ -230,7 +230,7 @@ public class ProjectController {
             @ApiResponse(responseCode = "403", description = "User is not admin or owner",
                     content = @Content(schema = @Schema(implementation = NotEnoughPermissionsException.class)))
     })
-    public ResponseEntity<Void> setRoleToMember(@PathVariable("member_id") long memberId, @org.springframework.web.bind.annotation.RequestBody StringRequest request){
+    public ResponseEntity<Void> setRoleToMember(@PathVariable("member_id") long memberId, @Valid @org.springframework.web.bind.annotation.RequestBody StringRequest request){
         User user = ((BearerToken) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUser();
         ProjectMember member = projectService.getProjectMemberOrThrow(memberId);
         Project project = member.getProject();
@@ -255,7 +255,7 @@ public class ProjectController {
                     content = @Content(schema = @Schema(implementation = NotEnoughPermissionsException.class))),
             @ApiResponse(responseCode = "400", description = "Received something wrong", content = @Content(schema = @Schema(implementation = ReceivedWrongDataException.class)))
     })
-    public ResponseEntity<Void> setSystemRoleToMember(@PathVariable("member_id") long memberId, @org.springframework.web.bind.annotation.RequestBody StringRequest request){
+    public ResponseEntity<Void> setSystemRoleToMember(@PathVariable("member_id") long memberId, @Valid @org.springframework.web.bind.annotation.RequestBody StringRequest request){
         User user = ((BearerToken) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUser();
         ProjectMember member = projectService.getProjectMemberOrThrow(memberId);
 

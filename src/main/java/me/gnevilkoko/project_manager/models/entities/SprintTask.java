@@ -30,14 +30,6 @@ public class SprintTask {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @JsonProperty("start_at")
-    @Column(name = "start_at")
-    private LocalDateTime startAt;
-
-    @JsonProperty("end_at")
-    @Column(name = "end_at")
-    private LocalDateTime endAt;
-
     @Enumerated(EnumType.STRING)
     private Priority priority;
 

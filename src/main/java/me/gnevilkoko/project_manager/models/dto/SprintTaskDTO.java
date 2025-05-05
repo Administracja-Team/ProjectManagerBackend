@@ -26,12 +26,6 @@ public class SprintTaskDTO {
 
     private String description;
 
-    @JsonProperty("start_at")
-    private LocalDateTime startAt;
-
-    @JsonProperty("end_at")
-    private LocalDateTime endAt;
-
     private SprintTask.Priority priority;
 
     private List<LowDataProjectMemberDTO> implementers = new ArrayList<>();
@@ -40,8 +34,6 @@ public class SprintTaskDTO {
         this.id = sprintTask.getId();
         this.name = sprintTask.getName();
         this.description = sprintTask.getDescription();
-        this.startAt = sprintTask.getStartAt();
-        this.endAt = sprintTask.getEndAt();
         this.priority = sprintTask.getPriority();
 
         for (ProjectMember projectMember : sprintTask.getImplementers()) {

@@ -21,7 +21,7 @@ import java.util.List;
 @ToString
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class CreateTaskRequest {
-    @NotBlank
+    @NotBlank(message = "Can't be blank")
     private String name;
 
     private String description;
@@ -37,7 +37,7 @@ public class CreateTaskRequest {
     @NotNull
     private SprintTask.Priority priority;
 
-    @NotEmpty
+    @NotEmpty(message = "Can't be empty")
     @JsonProperty("implementer_member_ids")
     private List<Long> implementerMemberIds;
 }

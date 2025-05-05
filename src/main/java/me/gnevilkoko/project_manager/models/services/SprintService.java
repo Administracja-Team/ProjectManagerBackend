@@ -45,8 +45,6 @@ public class SprintService {
         for (CreateTaskRequest tr : request.getTasks()) {
             SprintTask task = new SprintTask();
             task.setName(tr.getName());
-            task.setStartAt(tr.getStartAt());
-            task.setEndAt(tr.getEndAt());
             task.setPriority(tr.getPriority());
             task.setSprint(sprint);
 

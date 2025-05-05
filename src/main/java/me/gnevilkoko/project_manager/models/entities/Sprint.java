@@ -57,9 +57,18 @@ public class Sprint {
         shortSprintDTO.setTasks(tasks.size());
 
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        shortSprintDTO.setEnded(now.isAfter(endAt));
-        shortSprintDTO.setStarted(now.isAfter(startAt) && now.isBefore(endAt) || now.equals(startAt));
+        shortSprintDTO.setEnded(isEnded());
+        shortSprintDTO.setStarted(isStarted());
 
         return shortSprintDTO;
+    }
+
+    public boolean isEnded(){
+        return LocalDateTime.now(ZoneOffset.UTC).isAfter(endAt);
+    }
+
+    public boolean isStarted(){
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        return now.isAfter(startAt) && now.isBefore(endAt) || now.equals(startAt);
     }
 }
