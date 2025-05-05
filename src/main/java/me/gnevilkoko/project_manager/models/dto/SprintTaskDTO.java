@@ -30,11 +30,14 @@ public class SprintTaskDTO {
 
     private List<LowDataProjectMemberDTO> implementers = new ArrayList<>();
 
+    private SprintTask.Status status;
+
     public SprintTaskDTO(SprintTask sprintTask) {
         this.id = sprintTask.getId();
         this.name = sprintTask.getName();
         this.description = sprintTask.getDescription();
         this.priority = sprintTask.getPriority();
+        this.status = sprintTask.getStatus();
 
         for (ProjectMember projectMember : sprintTask.getImplementers()) {
             implementers.add(new LowDataProjectMemberDTO(projectMember));

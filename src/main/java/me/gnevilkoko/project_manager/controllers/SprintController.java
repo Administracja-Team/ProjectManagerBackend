@@ -11,17 +11,21 @@ import jakarta.validation.Valid;
 import me.gnevilkoko.project_manager.models.dto.ShortSprintDTO;
 import me.gnevilkoko.project_manager.models.dto.SprintDTO;
 import me.gnevilkoko.project_manager.models.dto.requests.CreateSprintRequest;
+import me.gnevilkoko.project_manager.models.dto.requests.StringRequest;
 import me.gnevilkoko.project_manager.models.entities.*;
 import me.gnevilkoko.project_manager.models.exceptions.NotEnoughPermissionsException;
+import me.gnevilkoko.project_manager.models.exceptions.ReceivedWrongDataException;
 import me.gnevilkoko.project_manager.models.repositories.SprintRepo;
 import me.gnevilkoko.project_manager.models.services.ProjectService;
 import me.gnevilkoko.project_manager.models.services.SprintService;
+import org.apache.coyote.BadRequestException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
 
 @RestController()
@@ -136,6 +140,38 @@ public class SprintController {
 
         Sprint sprint = sprintService.getSprint(sprintId);
         sprintRepo.delete(sprint);
+        return ResponseEntity.noContent().build();
+    }
+
+
+    @Operation(
+            summary = "Change sprint task status",
+            description = "You should be owner/admin or implementer of this task to perform change.\n" +
+                    "Available types: TODO, IN_PROGRESS, DONE"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Status was changed"),
+            @ApiResponse(responseCode = "403", description = "Not enough permissions"),
+            @ApiResponse(responseCode = "404", description = "Task/Sprint/Project not found")
+    })
+    @PatchMapping("/{project_id}/sprint/{sprint_id}/{task_id}")
+    public ResponseEntity<Void> changeTaskStatus(@PathVariable("project_id") long projectId,
+                                                 @PathVariable("sprint_id") long sprintId,
+                                                 @PathVariable("task_id") long taskId,
+                                                 @Valid @org.springframework.web.bind.annotation.RequestBody StringRequest request)
+    {
+        User user = ((BearerToken) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUser();
+        ProjectMember member = projectService.getProjectMemberOrThrow(projectId);
+        Project project = member.getProject();
+        Sprint sprint = sprintService.getSprint(sprintId);
+        SprintTask sprintTask = sprintService.getSprintTask(sprintId, taskId);
+        ProjectMember projectMember = projectService.getProjectMemberOrThrow(projectId, user.getId());
+
+        if(!projectService.isUserHasAdminPermissionInProject(user.getId(), projectId) && !sprintTask.getImplementers().contains(projectMember)) {
+            throw new NotEnoughPermissionsException();
+        }
+
+        sprintService.updateSprintTaskStatus(sprintTask, request.getPayload());
         return ResponseEntity.noContent().build();
     }
 }

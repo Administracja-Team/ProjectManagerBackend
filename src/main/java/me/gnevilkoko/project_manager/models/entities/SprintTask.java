@@ -33,6 +33,9 @@ public class SprintTask {
     @Enumerated(EnumType.STRING)
     private Priority priority;
 
+    @Enumerated(EnumType.STRING)
+    private Status status = Status.TODO;
+
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JsonIgnore
     private Sprint sprint;
@@ -48,5 +51,9 @@ public class SprintTask {
 
     public enum Priority {
         LOW, MEDIUM, HIGH
+    }
+
+    public enum Status {
+        TODO, IN_PROGRESS, DONE
     }
 }

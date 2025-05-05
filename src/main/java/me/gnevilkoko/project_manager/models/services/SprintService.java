@@ -8,13 +8,16 @@ import me.gnevilkoko.project_manager.models.entities.Project;
 import me.gnevilkoko.project_manager.models.entities.ProjectMember;
 import me.gnevilkoko.project_manager.models.entities.Sprint;
 import me.gnevilkoko.project_manager.models.entities.SprintTask;
+import me.gnevilkoko.project_manager.models.exceptions.ReceivedWrongDataException;
 import me.gnevilkoko.project_manager.models.exceptions.SprintNotFoundException;
+import me.gnevilkoko.project_manager.models.exceptions.SprintTaskNotFoundException;
 import me.gnevilkoko.project_manager.models.repositories.SprintRepo;
 import me.gnevilkoko.project_manager.models.repositories.SprintTaskRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -73,5 +76,25 @@ public class SprintService {
 
     public Sprint getSprint(long sprintId) {
         return sprintRepo.findById(sprintId).orElseThrow(SprintNotFoundException::new);
+    }
+
+    public SprintTask getSprintTask(long sprintId, long taskId) {
+        return sprintTaskRepo.findById(taskId).orElseThrow(SprintNotFoundException::new);
+    }
+
+    public void updateSprintTaskStatus(long taskId, String statusString){
+        SprintTask sprintTask = sprintTaskRepo.findById(taskId).orElseThrow(SprintTaskNotFoundException::new);
+        updateSprintTaskStatus(sprintTask, statusString);
+    }
+
+    public void updateSprintTaskStatus(SprintTask sprintTask, String statusString){
+        SprintTask.Status status;
+        try {
+            status = SprintTask.Status.valueOf(statusString.toUpperCase());
+        } catch (IllegalArgumentException e){
+            throw new ReceivedWrongDataException("Wrong status value. Available: "+ Arrays.toString(SprintTask.Status.values()));
+        }
+        sprintTask.setStatus(status);
+        sprintTaskRepo.save(sprintTask);
     }
 }
