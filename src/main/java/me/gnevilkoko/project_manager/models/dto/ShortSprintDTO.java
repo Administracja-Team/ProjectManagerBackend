@@ -30,4 +30,7 @@ public class ShortSprintDTO {
 
     @JsonProperty("is_started")
     private boolean isStarted;
+
+    @JsonProperty("done_percents")
+    private double donePercents;
 }

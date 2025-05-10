@@ -56,9 +56,9 @@ public class Sprint {
         shortSprintDTO.setEndTime(endAt);
         shortSprintDTO.setTasks(tasks.size());
 
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         shortSprintDTO.setEnded(isEnded());
         shortSprintDTO.setStarted(isStarted());
+        shortSprintDTO.setDonePercents(getDonePercents());
 
         return shortSprintDTO;
     }
@@ -70,5 +70,12 @@ public class Sprint {
     public boolean isStarted(){
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         return now.isAfter(startAt) && now.isBefore(endAt) || now.equals(startAt);
+    }
+
+    public double getDonePercents(){
+        long allTasks = tasks.size();
+        long doneTasks = tasks.stream().filter(t -> t.getStatus() == SprintTask.Status.DONE).count();
+
+        return (double) (100 * doneTasks) / allTasks;
     }
 }

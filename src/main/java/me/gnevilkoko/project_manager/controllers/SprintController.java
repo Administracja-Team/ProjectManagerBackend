@@ -161,7 +161,7 @@ public class SprintController {
                                                  @Valid @org.springframework.web.bind.annotation.RequestBody StringRequest request)
     {
         User user = ((BearerToken) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUser();
-        ProjectMember member = projectService.getProjectMemberOrThrow(projectId);
+        ProjectMember member = projectService.getProjectMemberOrThrow(projectId, user.getId());
         Project project = member.getProject();
         Sprint sprint = sprintService.getSprint(sprintId);
         SprintTask sprintTask = sprintService.getSprintTask(sprintId, taskId);

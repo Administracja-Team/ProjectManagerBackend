@@ -33,12 +33,16 @@ public class SprintDTO {
 
     private List<SprintTaskDTO> tasks = new ArrayList<>();
 
+    @JsonProperty("done_percents")
+    private double donePercents = 0;
+
     public SprintDTO(Sprint sprint) {
         this.id = sprint.getId();
         this.name = sprint.getName();
         this.description = sprint.getDescription();
         this.startAt = sprint.getStartAt();
         this.endAt = sprint.getEndAt();
+        this.donePercents = sprint.getDonePercents();
 
         for (SprintTask task : sprint.getTasks()) {
             tasks.add(new SprintTaskDTO(task));
