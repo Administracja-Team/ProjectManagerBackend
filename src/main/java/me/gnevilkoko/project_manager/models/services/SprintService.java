@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -76,6 +77,15 @@ public class SprintService {
 
     public Sprint getSprint(long sprintId) {
         return sprintRepo.findById(sprintId).orElseThrow(SprintNotFoundException::new);
+    }
+
+    public void deleteSprint(Sprint sprint) {
+        for (SprintTask task : sprint.getTasks()) {
+            task.setImplementers(new ArrayList<>());
+            sprintTaskRepo.save(task);
+        }
+
+        sprintRepo.delete(sprint);
     }
 
     public SprintTask getSprintTask(long sprintId, long taskId) {

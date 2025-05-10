@@ -131,7 +131,7 @@ public class SprintController {
     @DeleteMapping("/{project_id}/sprint/{sprint_id}")
     public ResponseEntity<Void> deleteSprint(@PathVariable("project_id") long projectId, @PathVariable("sprint_id") long sprintId) {
         User user = ((BearerToken) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUser();
-        ProjectMember member = projectService.getProjectMemberOrThrow(projectId);
+        ProjectMember member = projectService.getProjectMemberOrThrow(projectId, user.getId());
         Project project = member.getProject();
 
         if (!projectService.isUserHasAdminPermissionInProject(user.getId(), project.getId())) {
@@ -139,7 +139,7 @@ public class SprintController {
         }
 
         Sprint sprint = sprintService.getSprint(sprintId);
-        sprintRepo.delete(sprint);
+        sprintService.deleteSprint(sprint);
         return ResponseEntity.noContent().build();
     }
 

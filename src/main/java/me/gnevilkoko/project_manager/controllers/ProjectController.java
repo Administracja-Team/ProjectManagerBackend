@@ -369,7 +369,7 @@ public class ProjectController {
             throw new NotEnoughPermissionsException();
         }
 
-        projectService.deleteProject(project);
+        projectService.deleteProject(project.getId());
         return ResponseEntity.noContent().build();
     }
 }

@@ -1,5 +1,6 @@
 package me.gnevilkoko.project_manager.models.services;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import me.gnevilkoko.project_manager.models.dto.ShortProjectMemberDTO;
 import me.gnevilkoko.project_manager.models.dto.ProjectMemberDTO;
@@ -28,19 +29,23 @@ public class ProjectService {
     private UserRepo userRepo;
     private ProjectInvitationCodeRepo codeRepo;
     private SprintTaskRepo sprintTaskRepo;
+    private SprintRepo sprintRepo;
+    private ProjectMemberRepo projectMemberRepo;
 
 
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private long codeExpire;
 
     @Autowired
-    public ProjectService(ProjectMemberRepo memberRepo, ProjectRepo projectRepo, UserRepo userRepo, ProjectInvitationCodeRepo codeRepo, SprintTaskRepo sprintTaskRepo, @Value("${project.invitation-code.expire}") long codeExpire) {
+    public ProjectService(ProjectMemberRepo memberRepo, ProjectRepo projectRepo, UserRepo userRepo, ProjectInvitationCodeRepo codeRepo, SprintTaskRepo sprintTaskRepo, @Value("${project.invitation-code.expire}") long codeExpire, SprintRepo sprintRepo, ProjectMemberRepo projectMemberRepo) {
         this.memberRepo = memberRepo;
         this.projectRepo = projectRepo;
         this.userRepo = userRepo;
         this.codeRepo = codeRepo;
         this.codeExpire = codeExpire;
         this.sprintTaskRepo = sprintTaskRepo;
+        this.sprintRepo = sprintRepo;
+        this.projectMemberRepo = projectMemberRepo;
     }
 
     public ProjectMember createProjectMember(Project project, User user, ProjectMember.SystemRole role){
@@ -142,7 +147,20 @@ public class ProjectService {
     }
 
     @Transactional
-    public void deleteProject(Project project) {
+    public void deleteProject(Long projectId) {
+        Project project = projectRepo.findById(projectId)
+                .orElseThrow(() -> new EntityNotFoundException("Project not found"));
+
+        // 1) очистить все M2M-ссылки на задачи
+        for (Sprint sprint : project.getSprints()) {
+            for (SprintTask task : sprint.getTasks()) {
+                task.getImplementers().clear();
+            }
+        }
+        // 2) зафиксировать удаление ссылок из join-таблицы
+        sprintTaskRepo.flush();
+
+        // 3) удалить проект — cascade = REMOVE на sprints и members уберёт их автоматически
         projectRepo.delete(project);
     }
 
