@@ -32,12 +32,16 @@ public class SprintTaskDTO {
 
     private SprintTask.Status status;
 
-    public SprintTaskDTO(SprintTask sprintTask) {
+    @JsonProperty("is_mine")
+    private boolean isMine = false;
+
+    public SprintTaskDTO(SprintTask sprintTask, long memberId) {
         this.id = sprintTask.getId();
         this.name = sprintTask.getName();
         this.description = sprintTask.getDescription();
         this.priority = sprintTask.getPriority();
         this.status = sprintTask.getStatus();
+        this.isMine = sprintTask.getImplementers().stream().anyMatch(member -> member.getId() == memberId);
 
         for (ProjectMember projectMember : sprintTask.getImplementers()) {
             implementers.add(new LowDataProjectMemberDTO(projectMember));

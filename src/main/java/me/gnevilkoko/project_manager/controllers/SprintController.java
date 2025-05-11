@@ -88,8 +88,9 @@ public class SprintController {
             throw new NotEnoughPermissionsException();
         }
 
+        ProjectMember member = projectService.getProjectMemberOrThrow(projectId, user.getId());
         Sprint sprint = sprintService.getSprint(sprintId);
-        return ResponseEntity.ok(new SprintDTO(sprint));
+        return ResponseEntity.ok(new SprintDTO(sprint, member.getId()));
     }
 
     @Operation(
@@ -113,8 +114,9 @@ public class SprintController {
             throw new NotEnoughPermissionsException();
         }
 
+        ProjectMember member = projectService.getProjectMemberOrThrow(projectId, user.getId());
         Sprint sprint = sprintService.createSprint(projectId, request);
-        return ResponseEntity.ok(new SprintDTO(sprint));
+        return ResponseEntity.ok(new SprintDTO(sprint, member.getId()));
     }
 
     @Operation(

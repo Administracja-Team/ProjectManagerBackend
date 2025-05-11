@@ -36,7 +36,7 @@ public class SprintDTO {
     @JsonProperty("done_percents")
     private double donePercents = 0;
 
-    public SprintDTO(Sprint sprint) {
+    public SprintDTO(Sprint sprint, long memberId) {
         this.id = sprint.getId();
         this.name = sprint.getName();
         this.description = sprint.getDescription();
@@ -45,7 +45,7 @@ public class SprintDTO {
         this.donePercents = sprint.getDonePercents();
 
         for (SprintTask task : sprint.getTasks()) {
-            tasks.add(new SprintTaskDTO(task));
+            tasks.add(new SprintTaskDTO(task, memberId));
         }
     }
 }
