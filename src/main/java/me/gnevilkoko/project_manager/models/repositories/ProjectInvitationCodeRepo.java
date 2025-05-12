@@ -17,6 +17,7 @@ public interface ProjectInvitationCodeRepo extends JpaRepository<ProjectInvitati
     @Transactional
     @Query("delete from ProjectInvitationCode pic where pic.expiresAt < :now")
     void deleteExpiredCodes(@Param("now") LocalDateTime now);
-
     Optional<ProjectInvitationCode> findByCode(String code);
+
+    void deleteAllByProjectId(Long projectId);
 }

@@ -151,16 +151,15 @@ public class ProjectService {
         Project project = projectRepo.findById(projectId)
                 .orElseThrow(() -> new EntityNotFoundException("Project not found"));
 
-        // 1) очистить все M2M-ссылки на задачи
         for (Sprint sprint : project.getSprints()) {
             for (SprintTask task : sprint.getTasks()) {
                 task.getImplementers().clear();
             }
         }
-        // 2) зафиксировать удаление ссылок из join-таблицы
         sprintTaskRepo.flush();
+        codeRepo.deleteAllByProjectId(projectId);
+        codeRepo.flush();
 
-        // 3) удалить проект — cascade = REMOVE на sprints и members уберёт их автоматически
         projectRepo.delete(project);
     }
 
